@@ -58,7 +58,7 @@ export default function Sidebar({
             <div className="flex justify-center items-center mt-5 mb-8 px-2 transition-all duration-500">
                 <div className="bg-black rounded-lg p-3 transition-all duration-500">
                     <img
-                        src="/assets/logo/logo.jpeg"
+                        src="/assets/logo/logo.png"
                         alt="Star Light Logo"
                         className={`${isSidebarOpen ? 'h-12 w-12' : 'h-10 w-10'} object-contain transition-all duration-500 ease-in-out`}
                     />

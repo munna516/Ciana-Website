@@ -7,7 +7,7 @@ export default function AuthLayout({ children, title, description }) {
                     <div className="flex justify-center mb-8">
                         <div className="bg-black rounded-xl p-4 sm:p-6">
                             <img
-                                src="/assets/logo/logo.jpeg"
+                                src="/assets/logo/logo.png"
                                 alt="Star Light Path Logo"
                                 className="h-10 sm:h-14 md:h-20 w-auto object-contain"
                             />

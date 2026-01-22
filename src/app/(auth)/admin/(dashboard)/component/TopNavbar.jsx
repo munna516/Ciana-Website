@@ -72,7 +72,7 @@ export default function TopNavbar({
                 {/* Right: Notifications, Language, User */}
                 <div className="flex items-center gap-2 sm:gap-3 md:gap-10 flex-shrink-0">
                     {/* Notification Bell */}
-                    <Button variant="ghost" size="icon" className="relative h-9 w-9 sm:h-10 sm:w-10">
+                    <Button variant="ghost" size="icon" className="relative h-9 w-9 sm:h-10 sm:w-10 cursor-pointer">
                         <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 font-bold " />
                         <span className="absolute top-0 right-0 w-3 h-3 sm:w-4 sm:h-4 bg-red-500 text-white text-[10px] sm:text-xs rounded-full flex items-center justify-center">
                             6
