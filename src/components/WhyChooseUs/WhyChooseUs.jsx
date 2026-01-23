@@ -43,7 +43,7 @@ export default function WhyChooseUs() {
     ];
 
     return (
-        <section className="w-full bg-gray-100 py-16 sm:py-20 md:py-24 lg:py-32">
+        <section className="w-full bg-gray-100 py-10 sm:py-12 md:py-14 lg:py-16 mt-5 lg:mt-10">
             <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header Section */}
                 <div className="text-center mb-12 sm:mb-16 md:mb-20">

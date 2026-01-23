@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,13 +13,21 @@ import {
 
 export default function Navbar() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const pathname = usePathname();
 
     const navLinks = [
-        { label: 'Home', href: '/', isActive: true },
-        { label: 'Programs', href: '/programs', isActive: false },
-        { label: 'About Us', href: '/about', isActive: false },
-        { label: 'Eligibility', href: '/eligibility', isActive: false },
+        { label: 'Home', href: '/' },
+        { label: 'Programs', href: '/programs' },
+        { label: 'About Us', href: '/about' },
+        { label: 'Eligibility', href: '/eligibility' },
     ];
+
+    const isLinkActive = (href) => {
+        if (href === '/') {
+            return pathname === '/';
+        }
+        return pathname.startsWith(href);
+    };
 
     return (
         <nav className="bg-black w-full fixed top-0 left-0 right-0 z-50">
@@ -37,16 +46,18 @@ export default function Navbar() {
 
                     {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center gap-8 flex-1 justify-center">
-                        {navLinks.map((link) => (
-                            <Link
-                                key={link.label}
-                                href={link.href}
-                                className={`text-lg font-medium transition-colors hover:opacity-80 ${link.isActive ? 'text-[#FFA100]' : 'text-white'
-                                    }`}
-                            >
-                                {link.label}
-                            </Link>
-                        ))}
+                        {navLinks.map((link) => {
+                            const active = isLinkActive(link.href);
+                            return (
+                                <Link
+                                    key={link.label}
+                                    href={link.href}
+                                    className={`text-lg font-medium transition-colors hover:opacity-80 ${active ? 'text-[#FFA100]' : 'text-white'}`}
+                                >
+                                    {link.label}
+                                </Link>
+                            );
+                        })}
                     </div>
 
                     {/* Desktop Contact Button */}
@@ -78,17 +89,19 @@ export default function Navbar() {
                             </SheetTrigger>
                             <SheetContent side="left" className="bg-black border-gray-800 w-64 sm:w-72">
                                 <div className="flex flex-col items-center gap-6 mt-8">
-                                    {navLinks.map((link) => (
-                                        <Link
-                                            key={link.label}
-                                            href={link.href}
-                                            onClick={() => setMobileMenuOpen(false)}
-                                            className={`text-lg font-medium transition-colors hover:opacity-80 ${link.isActive ? 'text-[#FFA100]' : 'text-white'
-                                                }`}
-                                        >
-                                            {link.label}
-                                        </Link>
-                                    ))}
+                                    {navLinks.map((link) => {
+                                        const active = isLinkActive(link.href);
+                                        return (
+                                            <Link
+                                                key={link.label}
+                                                href={link.href}
+                                                onClick={() => setMobileMenuOpen(false)}
+                                                className={`text-lg font-medium transition-colors hover:opacity-80 ${active ? 'text-[#FFA100]' : 'text-white'}`}
+                                            >
+                                                {link.label}
+                                            </Link>
+                                        );
+                                    })}
                                 </div>
                             </SheetContent>
                         </Sheet>
