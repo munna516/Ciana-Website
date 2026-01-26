@@ -11,7 +11,7 @@ export default function AboutUs() {
                     alt="Community living environment"
                     className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-black/60" />
+                <div className="absolute inset-0 bg-black/70" />
                 <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
                     <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-3">
                         About Us
