@@ -11,9 +11,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import toast from "react-hot-toast";
+import { logout } from "@/lib/api";
 
 export default function TopNavbar({
     isSidebarOpen,
@@ -22,17 +22,14 @@ export default function TopNavbar({
     setMobileSidebar,
     user = null,
 }) {
-    const router = useRouter();
-
     const handleSignOut = () => {
-        localStorage.removeItem('rememberMe');
         toast.success("Signed out successfully");
-        router.push('/admin/login');
+        logout();
     };
 
-    const userName = user?.name || user?.email || "Moni Roy";
+    const userName = user?.full_name || user?.name || user?.email || "Admin User";
     const userImage = user?.image || "";
-    const userRole = user?.role || "Admin";
+    const userRole = user?.role_display || user?.role || "Admin";
     const userInitial = userName.charAt(0).toUpperCase();
 
     return (
@@ -69,33 +66,9 @@ export default function TopNavbar({
 
 
 
-                {/* Right: Notifications, Language, User */}
+                {/* Right: User */}
                 <div className="flex items-center gap-2 sm:gap-3 md:gap-10 flex-shrink-0">
-                    {/* Notification Bell */}
-                    <Button variant="ghost" size="icon" className="relative h-9 w-9 sm:h-10 sm:w-10 cursor-pointer">
-                        <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 font-bold " />
-                        <span className="absolute top-0 right-0 w-3 h-3 sm:w-4 sm:h-4 bg-red-500 text-white text-[10px] sm:text-xs rounded-full flex items-center justify-center">
-                            6
-                        </span>
-                    </Button>
 
-                    {/* Language Selector - Hidden on mobile */}
-                    {/* <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="hidden sm:flex items-center gap-1 sm:gap-2 h-auto py-2">
-
-                                <span className="text-xs sm:text-sm text-gray-600 hidden md:inline">English</span>
-                                <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem>English</DropdownMenuItem>
-                            <DropdownMenuItem>Spanish</DropdownMenuItem>
-                            <DropdownMenuItem>French</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu> */}
-
-                    {/* User Profile */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <div className="flex items-center gap-2 sm:gap-3 cursor-pointer">

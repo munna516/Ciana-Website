@@ -23,9 +23,9 @@ const navMain = [
         activeIcon: HelpCircle
     },
     {
-        label: "User Management",
+        label: "All Applications",
         icon: Users,
-        href: "/admin/user-management"
+        href: "/admin/all-applications"
     },
     {
         label: "Administrators",
