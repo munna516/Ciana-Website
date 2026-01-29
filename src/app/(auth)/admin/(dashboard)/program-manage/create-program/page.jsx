@@ -42,13 +42,119 @@ function CreateProgramContent() {
   const [sectionImagePreviews, setSectionImagePreviews] = useState({})
   const [isDraggingFeature, setIsDraggingFeature] = useState(false)
   const [draggingSectionId, setDraggingSectionId] = useState(null)
+  const [originalFeatureImageUrl, setOriginalFeatureImageUrl] = useState(null)
+  const [originalSectionImageUrls, setOriginalSectionImageUrls] = useState({})
+  const [originalSectionIds, setOriginalSectionIds] = useState(new Set()) // Track which section IDs came from backend
+
+  // Helper function to compress image
+  const compressImage = (file, maxWidth = 1920, maxHeight = 1920, quality = 0.8, maxSizeMB = 1) => {
+    return new Promise((resolve, reject) => {
+      if (!file || !file.type.startsWith('image/')) {
+        resolve(file)
+        return
+      }
+
+      // Check initial file size (warn if over 5MB)
+      const maxSizeBytes = maxSizeMB * 1024 * 1024
+      if (file.size > maxSizeBytes * 5) {
+        toast.error(`Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Please use an image smaller than ${maxSizeMB * 5}MB.`)
+        reject(new Error('Image too large'))
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          // Calculate new dimensions
+          let width = img.width
+          let height = img.height
+
+          if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height)
+            width = width * ratio
+            height = height * ratio
+          }
+
+          // Create canvas and compress
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(img, 0, 0, width, height)
+
+          // Convert to blob with quality
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                resolve(file) // Fallback to original if compression fails
+                return
+              }
+
+              // Check if compressed size is acceptable
+              if (blob.size <= maxSizeBytes) {
+                // Create new File object with compressed blob
+                const compressedFile = new File([blob], file.name, {
+                  type: file.type,
+                  lastModified: Date.now()
+                })
+                resolve(compressedFile)
+              } else {
+                // Try again with lower quality
+                if (quality > 0.5) {
+                  compressImage(file, maxWidth, maxHeight, quality - 0.1, maxSizeMB)
+                    .then(resolve)
+                    .catch(() => resolve(file))
+                } else {
+                  // If still too large, use original but warn user
+                  toast(`Image compressed but still large (${(blob.size / 1024 / 1024).toFixed(2)}MB). Consider using a smaller image.`, {
+                    icon: '⚠️',
+                    duration: 5000,
+                  })
+                  const compressedFile = new File([blob], file.name, {
+                    type: file.type,
+                    lastModified: Date.now()
+                  })
+                  resolve(compressedFile)
+                }
+              }
+            },
+            file.type,
+            quality
+          )
+        }
+        img.onerror = () => resolve(file) // Fallback to original
+        img.src = e.target.result
+      }
+      reader.onerror = () => resolve(file) // Fallback to original
+      reader.readAsDataURL(file)
+    })
+  }
+
+  // Helper function to convert File to base64
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      if (!file) {
+        resolve(null)
+        return
+      }
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        // Remove data:image/...;base64, prefix if present, or keep it
+        const base64String = reader.result
+        resolve(base64String)
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
 
   // Fetch program data if in edit mode
   const { data: programData, isLoading: loadingProgram } = useQuery({
     queryKey: ['program', programId],
     queryFn: async () => {
       if (!programId) return null
-      return await getProgramById(parseInt(programId))
+      return await get(`/api/program/programs/${programId}/`)
     },
     enabled: isEditMode && !!programId,
   })
@@ -66,21 +172,46 @@ function CreateProgramContent() {
   // Populate form when program data is loaded
   useEffect(() => {
     if (programData && isEditMode) {
-      const mappedSections = programData.sections && programData.sections.length > 0
-        ? programData.sections.map((section, index) => ({
-            id: section.id || index + 1,
+      // Check both 'sections' and 'program_sections' keys (backend might use either)
+      const backendSections = programData.sections || programData.program_sections || []
+
+      console.log('Loading program data:', {
+        backendSectionsCount: backendSections.length,
+        backendSections: backendSections,
+        programDataKeys: Object.keys(programData)
+      })
+
+      const mappedSections = backendSections.length > 0
+        ? backendSections.map((section, index) => {
+          // Preserve the exact ID from backend, or use index+1 as fallback
+          // Important: Keep the ID type exactly as backend provides it
+          const sectionId = section.id !== undefined && section.id !== null
+            ? section.id
+            : index + 1
+
+          return {
+            id: sectionId,
             title: section.title || '',
             description: section.description || '',
             image: null // Don't set file, just preview
-          }))
-        : [
-            {
-              id: 1,
-              title: '',
-              description: '',
-              image: null
-            }
-          ]
+          }
+        })
+        : [] // Don't add default section in edit mode if backend has no sections
+
+      // Track which section IDs actually came from the backend (not our fallback)
+      // Store both the ID value and its type to match exactly
+      const backendSectionIds = new Set()
+      backendSections.forEach((section, index) => {
+        if (section.id !== undefined && section.id !== null) {
+          // Store the ID exactly as it came from backend (preserve type)
+          backendSectionIds.add(section.id)
+          console.log(`Backend section ${index + 1} ID:`, section.id, typeof section.id)
+        }
+      })
+      setOriginalSectionIds(backendSectionIds)
+
+      console.log('Mapped sections:', mappedSections)
+      console.log('Original backend section IDs:', Array.from(backendSectionIds))
 
       setFormData({
         programName: programData.name || '',
@@ -89,21 +220,26 @@ function CreateProgramContent() {
         sections: mappedSections
       })
 
-      // Set image previews
+      // Set image previews and store original URLs
       if (programData.feature_image) {
-        setFeatureImagePreview(getImageUrl(programData.feature_image))
+        const featureImageUrl = getImageUrl(programData.feature_image)
+        setFeatureImagePreview(featureImageUrl)
+        setOriginalFeatureImageUrl(programData.feature_image) // Store original URL/path
       }
 
-      // Set section image previews
-      if (programData.sections) {
+      // Set section image previews and store original URLs
+      if (backendSections.length > 0) {
         const previews = {}
-        programData.sections.forEach((section, index) => {
+        const originalUrls = {}
+        backendSections.forEach((section, index) => {
           const sectionId = mappedSections[index]?.id || section.id || index + 1
           if (section.image) {
             previews[sectionId] = getImageUrl(section.image)
+            originalUrls[sectionId] = section.image // Store original URL/path
           }
         })
         setSectionImagePreviews(previews)
+        setOriginalSectionImageUrls(originalUrls)
       }
     }
   }, [programData, isEditMode])
@@ -116,17 +252,26 @@ function CreateProgramContent() {
     }))
   }
 
-  const processFeatureImage = (file) => {
+  const processFeatureImage = async (file) => {
     if (file && file.type.startsWith('image/')) {
-      setFormData(prev => ({
-        ...prev,
-        featureImage: file
-      }))
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setFeatureImagePreview(reader.result)
+      try {
+        // Compress image before processing
+        const compressedFile = await compressImage(file, 1920, 1920, 0.8, 1)
+
+        setFormData(prev => ({
+          ...prev,
+          featureImage: compressedFile
+        }))
+
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setFeatureImagePreview(reader.result)
+        }
+        reader.readAsDataURL(compressedFile)
+      } catch (error) {
+        console.error('Error processing feature image:', error)
+        toast.error('Failed to process image. Please try again.')
       }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -170,17 +315,26 @@ function CreateProgramContent() {
     }))
   }
 
-  const processSectionImage = (sectionId, file) => {
+  const processSectionImage = async (sectionId, file) => {
     if (file && file.type.startsWith('image/')) {
-      handleSectionChange(sectionId, 'image', file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setSectionImagePreviews(prev => ({
-          ...prev,
-          [sectionId]: reader.result
-        }))
+      try {
+        // Compress image before processing
+        const compressedFile = await compressImage(file, 1920, 1920, 0.8, 1)
+
+        handleSectionChange(sectionId, 'image', compressedFile)
+
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setSectionImagePreviews(prev => ({
+            ...prev,
+            [sectionId]: reader.result
+          }))
+        }
+        reader.readAsDataURL(compressedFile)
+      } catch (error) {
+        console.error('Error processing section image:', error)
+        toast.error('Failed to process image. Please try again.')
       }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -214,7 +368,16 @@ function CreateProgramContent() {
   }
 
   const addMoreSection = () => {
-    const newId = Math.max(...formData.sections.map(s => s.id), 0) + 1
+    // Generate a unique ID for the new section
+    // If sections have numeric IDs, use the max + 1
+    // Otherwise, use a timestamp-based ID
+    const existingIds = formData.sections.map(s => {
+      const id = typeof s.id === 'number' ? s.id : parseInt(s.id) || 0
+      return id
+    })
+    const maxNumericId = existingIds.length > 0 ? Math.max(...existingIds) : 0
+    const newId = maxNumericId + 1
+
     setFormData(prev => ({
       ...prev,
       sections: [
@@ -240,6 +403,11 @@ function CreateProgramContent() {
         delete newPreviews[sectionId]
         return newPreviews
       })
+      setOriginalSectionImageUrls(prev => {
+        const newUrls = { ...prev }
+        delete newUrls[sectionId]
+        return newUrls
+      })
     }
   }
 
@@ -247,6 +415,14 @@ function CreateProgramContent() {
   const createMutation = useMutation({
     mutationFn: async (formDataToSend) => {
       try {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Sending FormData:', {
+            entries: Array.from(formDataToSend.entries()).map(([key, value]) => [
+              key,
+              value instanceof File ? `File: ${value.name} (${value.size} bytes)` : value
+            ])
+          })
+        }
         return await create('/api/program/programs/', formDataToSend)
       } catch (error) {
         console.error('Create program mutation error:', error)
@@ -261,9 +437,15 @@ function CreateProgramContent() {
     },
     onError: (err) => {
       console.error('Create program error:', err)
-      const errorMessage = err.message || 'Failed to create program. Please try again.'
+      let errorMessage = err.message || 'Failed to create program. Please try again.'
+
+      // Handle 413 Request Entity Too Large error
+      if (errorMessage.includes('413') || errorMessage.includes('too large') || errorMessage.includes('Request Entity Too Large')) {
+        errorMessage = 'Upload size too large. Images have been compressed, but the total size is still too big. Please use smaller images or fewer images.'
+      }
+
       toast.error(errorMessage, {
-        duration: 6000,
+        duration: 8000,
       })
       setSaving(false) // Ensure saving state is reset
     },
@@ -288,9 +470,15 @@ function CreateProgramContent() {
     },
     onError: (err) => {
       console.error('Update program error:', err)
-      const errorMessage = err.message || 'Failed to update program. Please try again.'
+      let errorMessage = err.message || 'Failed to update program. Please try again.'
+
+      // Handle 413 Request Entity Too Large error
+      if (errorMessage.includes('413') || errorMessage.includes('too large') || errorMessage.includes('Request Entity Too Large')) {
+        errorMessage = 'Upload size too large. Images have been compressed, but the total size is still too big. Please use smaller images or fewer images.'
+      }
+
       toast.error(errorMessage, {
-        duration: 6000,
+        duration: 8000,
       })
       setSaving(false) // Ensure saving state is reset
     },
@@ -329,42 +517,134 @@ function CreateProgramContent() {
 
       // Create FormData according to API structure
       const formDataToSend = new FormData()
-      
+
       // Basic program fields
       formDataToSend.append('name', formData.programName)
       formDataToSend.append('short_description', formData.shortDescription)
 
-      // Feature image
+      // Feature image - only append if it's a new File
       if (formData.featureImage instanceof File) {
         formDataToSend.append('feature_image', formData.featureImage)
+      } else if (isEditMode && originalFeatureImageUrl && !formData.featureImage) {
+        // In edit mode, if no new file selected, we might need to handle existing image
+        // This depends on backend - some backends accept URL strings for updates
+        // For now, we'll only send if it's a new file
       }
 
-      // Prepare program_sections array (without images)
-      const programSections = formData.sections.map((section, index) => ({
-        title: section.title,
-        description: section.description
-      }))
+      // Prepare program_sections array - each object contains title, description, and image_key (if image exists)
+      // Section images are also sent as separate File fields (section_image_1, section_image_2, etc.)
+      const programSections = formData.sections.map((section, index) => {
+        const sectionData = {
+          title: section.title,
+          description: section.description
+        }
 
-      // Append program_sections as JSON string
-      formDataToSend.append('program_sections', JSON.stringify(programSections))
+        // In edit mode, always include section ID if it exists and is valid
+        // This tells the backend to UPDATE the section instead of creating a new one
+        // Backend will update if ID exists, or create new if ID doesn't exist in backend
+        if (isEditMode && section.id !== undefined && section.id !== null) {
+          // Include ID if it's a number (likely from backend) or if it's in our tracked original IDs
+          const isValidId = typeof section.id === 'number' ||
+            (typeof section.id === 'string' && section.id.match(/^\d+$/)) ||
+            originalSectionIds.has(section.id)
 
-      // Append section images with numbered keys (section_image_1, section_image_2, etc.)
+          if (isValidId) {
+            sectionData.id = section.id
+          }
+        }
+        // If no valid ID (new section added during edit), backend will create it as new
+
+        // Debug: Log section image state (dev only)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Section ${index + 1} image:`, {
+            image: section.image,
+            isFile: section.image instanceof File,
+            originalUrl: isEditMode ? originalSectionImageUrls[section.id] : null,
+            sectionId: section.id
+          })
+        }
+
+        // Add image_key only when there's a NEW file being uploaded
+        // In edit mode, if no new file is selected, don't include image_key (backend will keep existing image)
+        const imageKey = `section_image_${index + 1}`
+
+        if (section.image && section.image instanceof File) {
+          // New file selected - include image_key (file will be sent separately)
+          sectionData.image_key = imageKey
+        }
+        // If no new file selected, don't include image_key
+        // Backend will keep existing image if image_key is not present
+
+        return sectionData
+      })
+
+      // Log program_sections before stringifying (dev only)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Program sections before stringify:', programSections)
+        console.log('Edit mode:', isEditMode)
+        console.log('Original section IDs from backend:', Array.from(originalSectionIds))
+        console.log('Sections being sent with IDs:', programSections.filter(s => s.id).map(s => ({ id: s.id, title: s.title })))
+      }
+
+      // Append program_sections as JSON stringified string
+      const programSectionsJson = JSON.stringify(programSections)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Program sections JSON string:', programSectionsJson)
+      }
+      formDataToSend.append('program_sections', programSectionsJson)
+
+      // Append section images as separate File fields (section_image_1, section_image_2, etc.)
       formData.sections.forEach((section, index) => {
-        if (section.image instanceof File) {
-          formDataToSend.append(`section_image_${index + 1}`, section.image)
+        const imageKey = `section_image_${index + 1}`
+
+        if (section.image && section.image instanceof File) {
+          // New file selected, append as File
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Appending ${imageKey} as File:`, section.image.name, section.image)
+          }
+          formDataToSend.append(imageKey, section.image)
+        } else {
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`No file for ${imageKey}, skipping File append`)
+          }
+        }
+
+      })
+
+      // Calculate total file size
+      let totalSize = 0
+      const fileEntries = []
+      formDataToSend.forEach((value, key) => {
+        if (value instanceof File) {
+          totalSize += value.size
+          fileEntries.push({ key, name: value.name, size: value.size })
         }
       })
 
-      // Log FormData before sending
-      console.log('Sending FormData:', {
-        entries: Array.from(formDataToSend.entries()).map(([key, value]) => [
-          key,
-          value instanceof File ? `File: ${value.name} (${value.size} bytes)` : value
-        ]),
-        url: isEditMode 
-          ? `${process.env.NEXT_PUBLIC_API_URL}/api/program/programs/${programId}/`
-          : `${process.env.NEXT_PUBLIC_API_URL}/api/program/programs/`
-      })
+      const totalSizeMB = totalSize / 1024 / 1024
+
+      // Log FormData before sending (dev only)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Sending FormData:', {
+          entries: Array.from(formDataToSend.entries()).map(([key, value]) => [
+            key,
+            value instanceof File ? `File: ${value.name} (${(value.size / 1024 / 1024).toFixed(2)}MB)` : value
+          ]),
+          totalSize: `${totalSizeMB.toFixed(2)}MB`,
+          fileCount: fileEntries.length,
+          url: isEditMode
+            ? `${process.env.NEXT_PUBLIC_API_URL}/api/program/programs/${programId}/`
+            : `${process.env.NEXT_PUBLIC_API_URL}/api/program/programs/`
+        })
+      }
+
+      // Warn if total size is too large (over 1.5MB)
+      if (totalSizeMB > 1.5) {
+        toast(`Total upload size is ${totalSizeMB.toFixed(2)}MB. This may cause upload issues. Consider using smaller images.`, {
+          duration: 6000,
+          icon: '⚠️',
+        })
+      }
 
       if (isEditMode && programId) {
         // Update existing program
@@ -390,7 +670,7 @@ function CreateProgramContent() {
   }
 
   return (
-    <div className="w-full bg-white rounded-lg p-6">
+    <div className="w-full bg-white rounded-lg p-4 sm:p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button
@@ -428,231 +708,237 @@ function CreateProgramContent() {
       {/* Form */}
       {!loadingProgram && isSuperAdmin && (
         <div className="space-y-6">
-        {/* Program Name */}
-        <div>
-          <label htmlFor="programName" className="block text-sm font-medium text-gray-700 mb-2">
-            Program Name
-          </label>
-          <Input
-            id="programName"
-            name="programName"
-            type="text"
-            placeholder="Enter name"
-            value={formData.programName}
-            onChange={handleInputChange}
-            className="w-full border-gray-300"
-          />
-        </div>
-
-        {/* Short Description */}
-        <div>
-          <label htmlFor="shortDescription" className="block text-sm font-medium text-gray-700 mb-2">
-            Short Description
-          </label>
-          <Input
-            id="shortDescription"
-            name="shortDescription"
-            type="text"
-            placeholder="Enter description"
-            value={formData.shortDescription}
-            onChange={handleInputChange}
-            className="w-full border-gray-300"
-          />
-        </div>
-
-        {/* Feature Image */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Feature Image
-          </label>
-          <div className="relative">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFeatureImageChange}
-              className="hidden"
-              id="feature-image-upload"
-            />
-            <label
-              htmlFor="feature-image-upload"
-              onDrop={handleFeatureImageDrop}
-              onDragOver={handleFeatureImageDragOver}
-              onDragLeave={handleFeatureImageDragLeave}
-              className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors ${isDraggingFeature ? 'border-gray-500 bg-gray-200' : ''}`}
-            >
-              {featureImagePreview ? (
-                <div className="relative w-full h-full">
-                  <img
-                    src={featureImagePreview}
-                    alt="Feature preview"
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setFeatureImagePreview(null)
-                      setFormData(prev => ({ ...prev, featureImage: null }))
-                    }}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                  <span className="text-sm text-gray-600">
-                    Upload Image Here Or{' '}
-                    <span className="text-gray-700 font-medium">Browse</span>
-                  </span>
-                </>
-              )}
+          {/* Program Name */}
+          <div>
+            <label htmlFor="programName" className="block text-sm font-medium text-gray-700 mb-2">
+              Program Name
             </label>
+            <Input
+              id="programName"
+              name="programName"
+              type="text"
+              placeholder="Enter name"
+              value={formData.programName}
+              onChange={handleInputChange}
+              className="w-full border-gray-300"
+            />
           </div>
-        </div>
 
-        {/* Sections */}
-        {formData.sections.map((section, index) => (
-          <div key={section.id} className="border border-gray-200 rounded-lg p-6 space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">
-                Section {index + 1}
-              </h3>
-              {formData.sections.length > 1 && (
-                <button
-                  onClick={() => removeSection(section.id)}
-                  className="text-red-500 hover:text-red-700 cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              )}
-            </div>
+          {/* Short Description */}
+          <div>
+            <label htmlFor="shortDescription" className="block text-sm font-medium text-gray-700 mb-2">
+              Short Description
+            </label>
+            <Input
+              id="shortDescription"
+              name="shortDescription"
+              type="text"
+              placeholder="Enter description"
+              value={formData.shortDescription}
+              onChange={handleInputChange}
+              className="w-full border-gray-300"
+            />
+          </div>
 
-            {/* Section Title */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Section Tittle
-              </label>
-              <Input
-                type="text"
-                placeholder="Enter title"
-                value={section.title}
-                onChange={(e) => handleSectionChange(section.id, 'title', e.target.value)}
-                className="w-full border-gray-300"
+          {/* Feature Image */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Feature Image
+            </label>
+            <div className="relative">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFeatureImageChange}
+                className="hidden"
+                id="feature-image-upload"
               />
-            </div>
-
-            {/* Section Description - Rich Text Editor */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Section Description
+              <label
+                htmlFor="feature-image-upload"
+                onDrop={handleFeatureImageDrop}
+                onDragOver={handleFeatureImageDragOver}
+                onDragLeave={handleFeatureImageDragLeave}
+                className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors ${isDraggingFeature ? 'border-gray-500 bg-gray-200' : ''}`}
+              >
+                {featureImagePreview ? (
+                  <div className="relative w-full h-full">
+                    <img
+                      src={featureImagePreview}
+                      alt="Feature preview"
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setFeatureImagePreview(null)
+                        setOriginalFeatureImageUrl(null)
+                        setFormData(prev => ({ ...prev, featureImage: null }))
+                      }}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="text-sm text-gray-600">
+                      Upload Image Here Or{' '}
+                      <span className="text-gray-700 font-medium">Browse</span>
+                    </span>
+                  </>
+                )}
               </label>
-              <div className="border border-gray-300 rounded-lg overflow-hidden">
-               
-                {/* Textarea */}
-                <textarea
-                  placeholder="Type Description"
-                  value={section.description}
-                  onChange={(e) => handleSectionChange(section.id, 'description', e.target.value)}
-                  className="w-full min-h-[200px] p-4 resize-none focus:outline-none   "
-                  rows={8}
-                />
-              </div>
-            </div>
-
-            {/* Section Image */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Section Image
-              </label>
-              <div className="relative">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleSectionImageChange(section.id, e)}
-                  className="hidden"
-                  id={`section-image-upload-${section.id}`}
-                />
-                <label
-                  htmlFor={`section-image-upload-${section.id}`}
-                  onDrop={(e) => handleSectionImageDrop(section.id, e)}
-                  onDragOver={(e) => handleSectionImageDragOver(section.id, e)}
-                  onDragLeave={handleSectionImageDragLeave}
-                  className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors ${draggingSectionId === section.id ? 'border-gray-500 bg-gray-200' : ''}`}
-                >
-                  {sectionImagePreviews[section.id] ? (
-                    <div className="relative w-full h-full">
-                      <img
-                        src={sectionImagePreviews[section.id]}
-                        alt="Section preview"
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setSectionImagePreviews(prev => {
-                            const newPreviews = { ...prev }
-                            delete newPreviews[section.id]
-                            return newPreviews
-                          })
-                          handleSectionChange(section.id, 'image', null)
-                        }}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-600">
-                        Upload Image Here Or{' '}
-                        <span className="text-gray-700 font-medium">Browse</span>
-                      </span>
-                    </>
-                  )}
-                </label>
-              </div>
             </div>
           </div>
-        ))}
 
-        {/* Add More Section Button */}
-        <button
-          onClick={addMoreSection}
-          className="flex items-center gap-2 text-[#FFA100] hover:text-[#FFA100]/80 font-medium cursor-pointer transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Add More Section
-        </button>
+          {/* Sections */}
+          {formData.sections.map((section, index) => (
+            <div key={section.id} className="border border-gray-200 rounded-lg p-4 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  Section {index + 1}
+                </h3>
+                {formData.sections.length > 1 && (
+                  <button
+                    onClick={() => removeSection(section.id)}
+                    className="text-red-500 hover:text-red-700 cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
-          <Button
-            onClick={handleCancel}
-            variant="outline"
-            className="border-[#FFA100] text-[#FFA100] hover:bg-orange-50 cursor-pointer"
+              {/* Section Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Section Tittle
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Enter title"
+                  value={section.title}
+                  onChange={(e) => handleSectionChange(section.id, 'title', e.target.value)}
+                  className="w-full border-gray-300"
+                />
+              </div>
+
+              {/* Section Description - Rich Text Editor */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Section Description
+                </label>
+                <div className="border border-gray-300 rounded-lg overflow-hidden">
+
+                  {/* Textarea */}
+                  <textarea
+                    placeholder="Type Description"
+                    value={section.description}
+                    onChange={(e) => handleSectionChange(section.id, 'description', e.target.value)}
+                    className="w-full min-h-[200px] p-4 resize-none focus:outline-none   "
+                    rows={8}
+                  />
+                </div>
+              </div>
+
+              {/* Section Image */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Section Image
+                </label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleSectionImageChange(section.id, e)}
+                    className="hidden"
+                    id={`section-image-upload-${section.id}`}
+                  />
+                  <label
+                    htmlFor={`section-image-upload-${section.id}`}
+                    onDrop={(e) => handleSectionImageDrop(section.id, e)}
+                    onDragOver={(e) => handleSectionImageDragOver(section.id, e)}
+                    onDragLeave={handleSectionImageDragLeave}
+                    className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors ${draggingSectionId === section.id ? 'border-gray-500 bg-gray-200' : ''}`}
+                  >
+                    {sectionImagePreviews[section.id] ? (
+                      <div className="relative w-full h-full">
+                        <img
+                          src={sectionImagePreviews[section.id]}
+                          alt="Section preview"
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setSectionImagePreviews(prev => {
+                              const newPreviews = { ...prev }
+                              delete newPreviews[section.id]
+                              return newPreviews
+                            })
+                            setOriginalSectionImageUrls(prev => {
+                              const newUrls = { ...prev }
+                              delete newUrls[section.id]
+                              return newUrls
+                            })
+                            handleSectionChange(section.id, 'image', null)
+                          }}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 cursor-pointer"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                        <span className="text-sm text-gray-600">
+                          Upload Image Here Or{' '}
+                          <span className="text-gray-700 font-medium">Browse</span>
+                        </span>
+                      </>
+                    )}
+                  </label>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Add More Section Button */}
+          <button
+            onClick={addMoreSection}
+            className="flex items-center gap-2 text-[#FFA100] hover:text-[#FFA100]/80 font-medium cursor-pointer transition-colors w-full sm:w-auto justify-center sm:justify-start"
           >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="bg-[#FFA100] hover:bg-[#FFA100]/90 text-white cursor-pointer disabled:opacity-50"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                {isEditMode ? 'Updating...' : 'Saving...'}
-              </>
-            ) : (
-              isEditMode ? 'Update Program' : 'Save Program'
-            )}
-          </Button>
+            <Plus className="w-5 h-5" />
+            Add More Section
+          </button>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-6 border-t border-gray-200">
+            <Button
+              onClick={handleCancel}
+              variant="outline"
+              className="border-[#FFA100] text-[#FFA100] hover:bg-orange-50 cursor-pointer w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-[#FFA100] hover:bg-[#FFA100]/90 text-white cursor-pointer disabled:opacity-50 w-full sm:w-auto"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  {isEditMode ? 'Updating...' : 'Saving...'}
+                </>
+              ) : (
+                isEditMode ? 'Update Program' : 'Save Program'
+              )}
+            </Button>
+          </div>
         </div>
-      </div>
       )}
     </div>
   )
