@@ -1,37 +1,32 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import AdminSidebar from "./component/Sidebar";
 import TopNavbar from "./component/TopNavbar";
+import { getCurrentUser, isAuthenticated } from "@/lib/api";
 
 export default function Layout({ children }) {
+    const router = useRouter();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [mobileSidebar, setMobileSidebar] = useState(false);
     const [user, setUser] = useState(null);
 
     useEffect(() => {
-        // Get user data from localStorage or session
-        // You can replace this with your actual authentication logic
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch (e) {
-                // Fallback user object
-                setUser({
-                    name: "Admin User",
-                    email: "admin@example.com",
-                    role: "Admin",
-                });
-            }
-        } else {
-            // Default user object
-            setUser({
-                name: "Admin User",
-                email: "admin@example.com",
-                role: "Admin",
-            });
+        // Check if user is authenticated
+        if (!isAuthenticated()) {
+            router.push('/admin/login');
+            return;
         }
-    }, []);
+
+        // Get user data from API helper
+        const currentUser = getCurrentUser();
+        if (currentUser) {
+            setUser(currentUser);
+        } else {
+            // If no user found, redirect to login
+            router.push('/admin/login');
+        }
+    }, [router]);
 
     return (
         <div className="h-screen w-screen flex flex-col overflow-hidden">
