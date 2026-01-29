@@ -11,6 +11,7 @@ import Swal from 'sweetalert2'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 // Query keys
 const ADMIN_QUERY_KEYS = {
@@ -21,6 +22,7 @@ const ADMIN_QUERY_KEYS = {
 
 export default function Administrator() {
     const queryClient = useQueryClient()
+    const router = useRouter()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
     const [editingAdminId, setEditingAdminId] = useState(null)
@@ -307,7 +309,7 @@ export default function Administrator() {
     // Memoized filtered administrators for performance
     const filteredAdministrators = useMemo(() => {
         if (!searchQuery.trim()) return administrators
-        
+
         const query = searchQuery.toLowerCase()
         return administrators.filter(admin =>
             admin.name.toLowerCase().includes(query) ||
@@ -326,11 +328,15 @@ export default function Administrator() {
     }
 
     return (
-        <div className="w-full bg-white rounded-lg p-6">
+        <div className="w-full bg-white rounded-lg p-4 sm:p-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
-                    <button className="p-2 hover:bg-gray-100 rounded-md transition-colors cursor-pointer">
+                    <button
+                        onClick={() => router.back()}
+                        className="p-2 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                        aria-label="Go back"
+                    >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
                     <h1 className="text-2xl font-semibold">Administrator</h1>
@@ -388,67 +394,146 @@ export default function Administrator() {
 
             {/* Table */}
             {!loading && (
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                        <thead>
-                            <tr className="border-b border-gray-200">
-                                <th className="text-left py-3 px-4 font-medium text-gray-700">SL no.</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-700">Name</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-700">Email</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-700">Contact Number</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-700">Has Access to</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-700">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredAdministrators.length === 0 ? (
-                                <tr>
-                                    <td colSpan="6" className="text-center py-8 text-gray-500">
-                                        No administrators found
-                                    </td>
+                <>
+                    {/* Desktop/Table */}
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="border-b border-gray-200">
+                                    <th className="text-left py-3 px-4 font-medium text-gray-700">SL no.</th>
+                                    <th className="text-left py-3 px-4 font-medium text-gray-700">Name</th>
+                                    <th className="text-left py-3 px-4 font-medium text-gray-700">Email</th>
+                                    <th className="text-left py-3 px-4 font-medium text-gray-700">Contact Number</th>
+                                    <th className="text-left py-3 px-4 font-medium text-gray-700">Has Access to</th>
+                                    <th className="text-left py-3 px-4 font-medium text-gray-700">Action</th>
                                 </tr>
-                            ) : (
-                                filteredAdministrators.map((admin) => (
-                                    <tr key={admin.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                        <td className="py-4 px-4 text-gray-600">{admin.slNo}</td>
-                                        <td className="py-4 px-4">
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="w-8 h-8">
-                                                    {admin.avatar ? (
-                                                        <AvatarImage src={admin.avatar} alt={admin.name} />
-                                                    ) : null}
-                                                    <AvatarFallback className="bg-gray-200 text-gray-600 text-xs">
-                                                        {getInitials(admin.name)}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <span className="text-gray-800">{admin.name || 'N/A'}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-4 text-gray-600">{admin.email}</td>
-                                        <td className="py-4 px-4 text-gray-600">{admin.contactNumber}</td>
-                                        <td className="py-4 px-4 text-gray-600">{admin.hasAccessTo}</td>
-                                        <td className="py-4 px-4">
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => handleEdit(admin)}
-                                                    className="w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded flex items-center justify-center transition-colors cursor-pointer"
-                                                >
-                                                    <Pencil className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(admin.id)}
-                                                    className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded flex items-center justify-center transition-colors cursor-pointer"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
+                            </thead>
+                            <tbody>
+                                {filteredAdministrators.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="6" className="text-center py-8 text-gray-500">
+                                            No administrators found
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                ) : (
+                                    filteredAdministrators.map((admin) => (
+                                        <tr key={admin.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                            <td className="py-4 px-4 text-gray-600">{admin.slNo}</td>
+                                            <td className="py-4 px-4">
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="w-8 h-8">
+                                                        {admin.avatar ? (
+                                                            <AvatarImage src={admin.avatar} alt={admin.name} />
+                                                        ) : null}
+                                                        <AvatarFallback className="bg-gray-200 text-gray-600 text-xs">
+                                                            {getInitials(admin.name)}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <span className="text-gray-800">{admin.name || 'N/A'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-4 text-gray-600">{admin.email}</td>
+                                            <td className="py-4 px-4 text-gray-600">{admin.contactNumber}</td>
+                                            <td className="py-4 px-4 text-gray-600">{admin.hasAccessTo}</td>
+                                            <td className="py-4 px-4">
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => handleEdit(admin)}
+                                                        className="w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded flex items-center justify-center transition-colors cursor-pointer"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(admin.id)}
+                                                        className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded flex items-center justify-center transition-colors cursor-pointer"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile cards */}
+                    <div className="md:hidden space-y-3">
+                        {filteredAdministrators.length === 0 ? (
+                            <div className="py-12 text-center text-gray-500">
+                                No administrators found
+                            </div>
+                        ) : (
+                            filteredAdministrators.map((admin) => (
+                                <div
+                                    key={admin.id}
+                                    className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm"
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <Avatar className="w-10 h-10 flex-shrink-0">
+                                                {admin.avatar ? (
+                                                    <AvatarImage src={admin.avatar} alt={admin.name} />
+                                                ) : null}
+                                                <AvatarFallback className="bg-gray-200 text-gray-600 text-xs">
+                                                    {getInitials(admin.name)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-semibold text-gray-800 truncate">
+                                                    {admin.name || 'N/A'}
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                    {admin.slNo}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                            <button
+                                                onClick={() => handleEdit(admin)}
+                                                className="w-9 h-9 bg-blue-500 hover:bg-blue-600 text-white rounded flex items-center justify-center transition-colors"
+                                                aria-label="Edit admin"
+                                            >
+                                                <Pencil className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(admin.id)}
+                                                className="w-9 h-9 bg-red-500 hover:bg-red-600 text-white rounded flex items-center justify-center transition-colors"
+                                                aria-label="Delete admin"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-3 grid grid-cols-1 gap-2">
+                                        <div>
+                                            <p className="text-xs text-gray-500">Email</p>
+                                            <p className="text-sm text-gray-700 break-words">
+                                                {admin.email || 'N/A'}
+                                            </p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <p className="text-xs text-gray-500">Contact</p>
+                                                <p className="text-sm text-gray-700 break-words">
+                                                    {admin.contactNumber || 'N/A'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">Access</p>
+                                                <p className="text-sm text-gray-700 break-words">
+                                                    {admin.hasAccessTo || 'N/A'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </>
             )}
 
             {/* Add/Edit Admin Modal */}

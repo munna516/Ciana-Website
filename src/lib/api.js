@@ -24,7 +24,7 @@ const getAccessToken = () => {
 async function refreshAccessToken() {
     try {
         if (typeof window === 'undefined') return false
-        
+
         const refreshToken = localStorage.getItem('refreshToken')
         if (!refreshToken) return false
 
@@ -55,7 +55,7 @@ async function refreshAccessToken() {
  */
 export function logout() {
     if (typeof window === 'undefined') return
-    
+
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
@@ -123,7 +123,18 @@ function parseApiError(errorData) {
  */
 async function makeRequest(url, options = {}) {
     const accessToken = getAccessToken()
-    
+
+    // Debug: Log API configuration
+    if (process.env.NODE_ENV === 'development') {
+        console.log('API Request Debug:', {
+            url,
+            baseUrl: getApiBaseUrl(),
+            hasAccessToken: !!accessToken,
+            method: options.method || 'GET',
+            isFormData: options.body instanceof FormData
+        })
+    }
+
     const config = {
         ...options,
         headers: {
@@ -136,14 +147,21 @@ async function makeRequest(url, options = {}) {
         config.headers['Authorization'] = `Bearer ${accessToken}`
     }
 
-    // Set Content-Type for JSON requests (not for FormData)
-    if (!(options.body instanceof FormData) && !config.headers['Content-Type']) {
-        config.headers['Content-Type'] = 'application/json'
-    }
+    // Handle FormData vs JSON body
+    if (options.body instanceof FormData) {
+        // For FormData, let the browser set Content-Type with boundary
+        // Explicitly remove Content-Type if it was set, so browser can set it correctly
+        delete config.headers['Content-Type']
+    } else {
+        // Set Content-Type for JSON requests
+        if (!config.headers['Content-Type']) {
+            config.headers['Content-Type'] = 'application/json'
+        }
 
-    // Convert body to JSON if it's an object and not FormData
-    if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
-        config.body = JSON.stringify(options.body)
+        // Convert body to JSON if it's an object
+        if (options.body && typeof options.body === 'object') {
+            config.body = JSON.stringify(options.body)
+        }
     }
 
     try {
@@ -165,7 +183,7 @@ async function makeRequest(url, options = {}) {
         // Parse response
         let data
         const contentType = response.headers.get('content-type')
-        
+
         if (contentType && contentType.includes('application/json')) {
             try {
                 data = await response.json()
@@ -190,7 +208,15 @@ async function makeRequest(url, options = {}) {
     } catch (error) {
         // Handle network errors
         if (error instanceof TypeError && error.message === 'Failed to fetch') {
-            throw new Error(`Network error: Unable to connect to ${url}. Check your connection and CORS settings.`)
+            const baseUrl = getApiBaseUrl()
+            const errorMsg = `Network error: Unable to connect to ${url}. `
+            const suggestions = [
+                'Check your internet connection',
+                'Verify the backend server is running',
+                'Check CORS settings on the backend',
+                baseUrl ? `API Base URL: ${baseUrl}` : 'API Base URL is not configured. Set NEXT_PUBLIC_API_URL environment variable.'
+            ]
+            throw new Error(errorMsg + suggestions.join('. '))
         }
         throw error
     }
@@ -205,11 +231,13 @@ async function makeRequest(url, options = {}) {
 export async function get(endpoint, params = {}) {
     const baseUrl = getApiBaseUrl()
     if (!baseUrl) {
-        throw new Error('API base URL is not configured')
+        throw new Error('API base URL is not configured. Please set NEXT_PUBLIC_API_URL environment variable.')
     }
 
-    let url = `${baseUrl}${endpoint}`
-    
+    // Ensure endpoint starts with / and baseUrl doesn't end with /
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+    let url = `${baseUrl}${cleanEndpoint}`
+
     // Add query parameters
     if (Object.keys(params).length > 0) {
         const searchParams = new URLSearchParams(params)
@@ -230,10 +258,12 @@ export async function get(endpoint, params = {}) {
 export async function create(endpoint, data = {}) {
     const baseUrl = getApiBaseUrl()
     if (!baseUrl) {
-        throw new Error('API base URL is not configured')
+        throw new Error('API base URL is not configured. Please set NEXT_PUBLIC_API_URL environment variable.')
     }
 
-    const url = `${baseUrl}${endpoint}`
+    // Ensure endpoint starts with / and baseUrl doesn't end with /
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+    const url = `${baseUrl}${cleanEndpoint}`
 
     return await makeRequest(url, {
         method: 'POST',
@@ -250,10 +280,12 @@ export async function create(endpoint, data = {}) {
 export async function update(endpoint, data = {}) {
     const baseUrl = getApiBaseUrl()
     if (!baseUrl) {
-        throw new Error('API base URL is not configured')
+        throw new Error('API base URL is not configured. Please set NEXT_PUBLIC_API_URL environment variable.')
     }
 
-    const url = `${baseUrl}${endpoint}`
+    // Ensure endpoint starts with / and baseUrl doesn't end with /
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+    const url = `${baseUrl}${cleanEndpoint}`
 
     return await makeRequest(url, {
         method: 'PUT',
@@ -270,10 +302,12 @@ export async function update(endpoint, data = {}) {
 export async function patch(endpoint, data = {}) {
     const baseUrl = getApiBaseUrl()
     if (!baseUrl) {
-        throw new Error('API base URL is not configured')
+        throw new Error('API base URL is not configured. Please set NEXT_PUBLIC_API_URL environment variable.')
     }
 
-    const url = `${baseUrl}${endpoint}`
+    // Ensure endpoint starts with / and baseUrl doesn't end with /
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+    const url = `${baseUrl}${cleanEndpoint}`
 
     return await makeRequest(url, {
         method: 'PATCH',
@@ -289,10 +323,12 @@ export async function patch(endpoint, data = {}) {
 export async function del(endpoint) {
     const baseUrl = getApiBaseUrl()
     if (!baseUrl) {
-        throw new Error('API base URL is not configured')
+        throw new Error('API base URL is not configured. Please set NEXT_PUBLIC_API_URL environment variable.')
     }
 
-    const url = `${baseUrl}${endpoint}`
+    // Ensure endpoint starts with / and baseUrl doesn't end with /
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+    const url = `${baseUrl}${cleanEndpoint}`
 
     return await makeRequest(url, {
         method: 'DELETE',

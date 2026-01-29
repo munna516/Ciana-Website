@@ -49,7 +49,17 @@ export default function Sidebar({
     const pathname = usePathname();
 
     const isActive = (href) => {
-        return pathname === href;
+        // Exact match
+        if (pathname === href) {
+            return true;
+        }
+
+        // For program-manage, also check sub-routes (like create-program)
+        if (href === '/admin/program-manage' && pathname.startsWith('/admin/program-manage/')) {
+            return true;
+        }
+
+        return false;
     };
 
     const SidebarContent = (
@@ -85,7 +95,7 @@ export default function Sidebar({
                                         <item.activeIcon className={`${isSidebarOpen ? 'w-5 h-5' : 'w-4 h-4'} text-white transition-all duration-500 ease-in-out`} />
                                     </div>
                                 ) : (
-                                    <item.icon className={`w6 h-6 font-bold ${active ? "text-white" : "text-gray-600"} flex-shrink-0 transition-colors duration-300`} />
+                                    <item.icon className={`w-6 h-6 font-bold ${active ? "text-white" : "text-gray-600"} flex-shrink-0 transition-colors duration-300`} />
                                 )}
                                 <span
                                     className={`text-xl font-bold ${active ? "text-white" : "text-gray-800"} whitespace-nowrap transition-all duration-500 ease-in-out ${isSidebarOpen
@@ -123,7 +133,7 @@ export default function Sidebar({
                                 <div className="flex justify-center items-center mt-5 mb-8 px-2">
                                     <div className="bg-black rounded-lg p-3">
                                         <img
-                                            src="/assets/logo/logo.jpeg"
+                                            src="/assets/logo/logo.png"
                                             alt="Star Light Logo"
                                             className="h-12 w-12 object-contain"
                                         />

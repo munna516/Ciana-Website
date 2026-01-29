@@ -52,16 +52,16 @@ export default function TopNavbar({
                     </button>
 
                     {/* Search Bar */}
-                    <div className="flex-1 max-w-xl min-w-0">
-                        <div className="relative">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 sm:w-6 sm:h-6" />
-                            <input
-                                type="text"
-                                placeholder="Search"
-                                className="w-full pl-12 sm:pl-14 pr-4 py-3 sm:py-3.5 bg-gray-100 rounded-full border outline-none focus:ring-2 focus:ring-primary/50 text-base sm:text-lg placeholder:text-gray-400"
-                            />
-                        </div>
-                    </div>
+                        {/* <div className="flex-1 max-w-xl min-w-0">
+                            <div className="relative">
+                                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 sm:w-6 sm:h-6" />
+                                <input
+                                    type="text"
+                                    placeholder="Search"
+                                    className="w-full pl-12 sm:pl-14 pr-4 py-3 sm:py-3.5 bg-gray-100 rounded-full border outline-none focus:ring-2 focus:ring-primary/50 text-base sm:text-lg placeholder:text-gray-400"
+                                />
+                            </div>
+                        </div> */}
                 </div>
 
 
