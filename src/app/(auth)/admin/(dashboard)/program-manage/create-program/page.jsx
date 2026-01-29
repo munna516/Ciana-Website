@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { ArrowLeft, Plus, Upload, X, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, Link, ImageIcon, Undo2, Redo2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { getProgramById } from '@/lib/api'
 
-export default function CreateProgram() {
+function CreateProgramContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const programId = searchParams.get('id')
@@ -484,5 +484,20 @@ export default function CreateProgram() {
       </div>
       )}
     </div>
+  )
+}
+
+export default function CreateProgram() {
+  return (
+    <Suspense fallback={
+      <div className="w-full bg-white rounded-lg p-6">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-[#FFA100]" />
+          <span className="ml-2 text-gray-600">Loading...</span>
+        </div>
+      </div>
+    }>
+      <CreateProgramContent />
+    </Suspense>
   )
 }
