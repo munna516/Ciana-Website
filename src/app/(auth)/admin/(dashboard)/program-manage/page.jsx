@@ -31,11 +31,11 @@ export default function ProgramManage() {
     const programs = programsData || []
 
     const handleAddProgram = () => {
-        router.push('/admin/program-manage/creat-program')
+        router.push('/admin/program-manage/create-program')
     }
 
     const handleEdit = (id) => {
-        router.push(`/admin/program-manage/creat-program?id=${id}`)
+        router.push(`/admin/program-manage/create-program?id=${id}`)
     }
 
     const handleDelete = (id) => {
