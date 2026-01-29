@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import AuthLayout from '@/components/auth/AuthLayout';
 import ErrorMessage from '@/components/auth/ErrorMessage';
+import toast from 'react-hot-toast';
+import { create } from '@/lib/api';
 
 function VerifyCodeForm() {
     const router = useRouter();
@@ -66,6 +68,7 @@ function VerifyCodeForm() {
         setError('');
 
         const codeString = code.join('');
+        const email = localStorage.getItem('passwordResetEmail');
 
         // Validation
         if (codeString.length !== 5) {
@@ -75,14 +78,24 @@ function VerifyCodeForm() {
 
         setIsLoading(true);
 
-        try {
-            // Simulate API call - Replace this with your actual verification logic
-            await new Promise((resolve) => setTimeout(resolve, 1000));
 
-            // Redirect to reset password page or dashboard
-            router.push('/admin/reset-password?code=' + codeString);
+
+        try {
+
+            const response = await create('/api/auth/password/verify/', { email, otp: codeString });
+            console.log(response);
+
+            if (response.detail === "OTP verified. You may set a new password now.") {
+                toast.success('Verification code verified!');
+                router.push('/admin/reset-password?code=' + codeString);
+            } else {
+                setError('Invalid verification code. Please try again.');
+            }
         } catch (err) {
-            setError('Invalid verification code. Please try again.');
+            const msg = err?.message || 'Invalid verification code. Please try again.';
+            setError(msg);
+            toast.error(msg);
+        } finally {
             setIsLoading(false);
         }
     };
@@ -90,9 +103,13 @@ function VerifyCodeForm() {
     const handleResend = async () => {
         setIsResending(true);
         try {
-            // Simulate API call - Replace this with your actual resend logic
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            // Reset code fields
+            const email = localStorage.getItem('passwordResetEmail');
+            const response = await create('/api/auth/password/forgot/', { email });
+            if (response.status === 200) {
+                toast.success('Verification code sent to your email!');
+            } else {
+                setError('Failed to resend code. Please try again.');
+            }
             setCode(['', '', '', '', '']);
             setError('');
             if (inputRefs.current[0]) {

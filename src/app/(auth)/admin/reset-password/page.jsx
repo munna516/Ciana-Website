@@ -7,6 +7,8 @@ import AuthLayout from '@/components/auth/AuthLayout';
 import ErrorMessage from '@/components/auth/ErrorMessage';
 import PasswordInput from '@/components/auth/PasswordInput';
 import { validatePassword, validatePasswordsMatch } from '@/lib/validation';
+import { create } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 export default function ResetPassword() {
     const router = useRouter();
@@ -34,13 +36,24 @@ export default function ResetPassword() {
         setIsLoading(true);
 
         try {
-            // Simulate API call - Replace this with your actual password reset logic
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            const email = localStorage.getItem('passwordResetEmail');
+            const response = await create('/api/auth/password/reset/', { email, new_password: newPassword, new_password_confirm: confirmPassword });
 
-            // Redirect to success page on successful password reset
-            router.push('/admin/success');
+            if (response.detail === "Password reset successful. Please log in with your new password.") {
+                toast.success('Password reset successful!');
+                localStorage.removeItem('passwordResetEmail');
+                localStorage.removeItem('passwordResetOtp');
+                localStorage.removeItem('userEmail');
+                localStorage.removeItem('rememberMe');
+                router.push('/admin/success');
+            } else {
+                setError('Failed to reset password. Please try again.');
+            }
+
         } catch (err) {
-            setError('Failed to reset password. Please try again.');
+            const msg = err?.message || 'Failed to reset password. Please try again.';
+            setError(msg);
+            toast.error(msg);
             setIsLoading(false);
         }
     };

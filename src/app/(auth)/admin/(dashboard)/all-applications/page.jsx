@@ -189,7 +189,7 @@ export default function AllApplications() {
                                     <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">Full Name</th>
                                     <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">Email</th>
                                     <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">Phone Number</th>
-                                    <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">Gender</th>
+                                    <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">Date of Birth</th>
                                     <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">Action</th>
                                 </tr>
                             </thead>
@@ -212,10 +212,10 @@ export default function AllApplications() {
                                                     {application.email || 'N/A'}
                                                 </td>
                                                 <td className="py-4 px-4 text-sm text-gray-700">
-                                                    {formatPhoneNumber(application.phone_number || application.contact_number)}
+                                                    {formatPhoneNumber(application.phone_number || application.phone)}
                                                 </td>
                                                 <td className="py-4 px-4 text-sm text-gray-700">
-                                                    {application.gender || 'N/A'}
+                                                    {application.date_of_birth || 'N/A'}
                                                 </td>
                                                 <td className="py-4 px-4">
                                                     <button
