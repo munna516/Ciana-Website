@@ -10,6 +10,7 @@ import ErrorMessage from '@/components/auth/ErrorMessage';
 import PasswordInput from '@/components/auth/PasswordInput';
 import { validateEmail, validatePassword } from '@/lib/validation';
 import { login } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 export default function AdminLoginPage() {
     const router = useRouter();
@@ -63,14 +64,17 @@ export default function AdminLoginPage() {
                     localStorage.removeItem('rememberMe');
                     localStorage.removeItem('userEmail');
                 }
+                toast.success('Login successful!');
                 // Redirect to dashboard on successful login
                 router.push("/admin/dashboard");
             } else {
+                toast.error('Login failed. Please check your credentials and try again.');
                 setError(response.message || 'Login failed. Please check your credentials and try again.');
                 setIsLoading(false);
             }
         } catch (err) {
-            setError(err.message || 'Login failed. Please check your credentials and try again.');
+            // setError(err.message || 'Login failed. Please check your credentials and try again.');
+            toast.error("Password is incorrect. Please try again.");
             setIsLoading(false);
         }
     };

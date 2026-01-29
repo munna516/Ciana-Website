@@ -23,7 +23,7 @@ const ADMIN_QUERY_KEYS = {
 export default function Administrator() {
     const queryClient = useQueryClient()
     const router = useRouter()
-    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [isModalOpen, setIsModalOpen] = useState(false)   
     const [searchQuery, setSearchQuery] = useState('')
     const [editingAdminId, setEditingAdminId] = useState(null)
     const [isSuperAdmin, setIsSuperAdmin] = useState(false)
@@ -105,7 +105,7 @@ export default function Administrator() {
         }
     }
 
-    // Create admin mutation
+    // Create admin mutation    
     const createMutation = useMutation({
         mutationFn: async (formDataToSend) => {
             return await create('/api/auth/admins/create/', formDataToSend)

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,12 +8,18 @@ import AuthLayout from '@/components/auth/AuthLayout';
 import ErrorMessage from '@/components/auth/ErrorMessage';
 import { validateEmail } from '@/lib/validation';
 import toast from 'react-hot-toast';
+import { create } from '@/lib/api';
 
 export default function ForgotPassword() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        const savedEmail = localStorage.getItem('passwordResetEmail');
+        if (savedEmail) setEmail(savedEmail);
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -28,16 +34,22 @@ export default function ForgotPassword() {
         setIsLoading(true);
 
         try {
-            // Simulate API call - Replace this with your actual password reset logic
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            // API: /api/auth/password/forgot (email only)
+            await create('/api/auth/password/forgot/', { email });
+
+            // Store temporary data for the next steps
+            localStorage.setItem('passwordResetEmail', email);
+            localStorage.removeItem('passwordResetOtp');
 
             // Redirect to verification code page with email
             toast.success('Verification code sent to your email!');
-            setIsLoading(false);
-            router.push(`/admin/verify-code?email=${encodeURIComponent(email)}`);
+            router.push('/admin/verify-code');
 
         } catch (err) {
-            setError('Failed to send verification code. Please try again.');
+            const msg = err?.message || 'Failed to send verification code. Please try again.';
+            setError(msg);
+            toast.error(msg);
+        } finally {
             setIsLoading(false);
         }
     };
@@ -66,7 +78,7 @@ export default function ForgotPassword() {
                         placeholder="Enter your email"
                         required
                         disabled={isLoading}
-                        className="border-primary focus-visible:border-primary focus-visible:ring-primary/50"
+                        className="border-gray-300 focus-visible:border-primary focus-visible:ring-primary/20 focus-visible:ring-[3px]"
                     />
                 </div>
 

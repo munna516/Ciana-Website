@@ -28,7 +28,7 @@ export default function Footer() {
                             asChild
                             className="bg-[#FFA100] hover:bg-[#FF8C00] text-white font-medium px-6 sm:px-8 md:px-10 py-3 sm:py-4 rounded-lg text-sm sm:text-base md:text-lg"
                         >
-                            <Link href="/contact">Contact</Link>
+                            <Link href="/apply">Apply Now</Link>
                         </Button>
                     </div>
                 </div>
