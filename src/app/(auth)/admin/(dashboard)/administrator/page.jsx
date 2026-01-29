@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { getAllAdmins, createAdmin, updateAdmin, deleteAdmin, getCurrentUser } from '@/lib/api'
+import { get, create, update, del, getCurrentUser } from '@/lib/api'
 import Swal from 'sweetalert2'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -58,7 +58,7 @@ export default function Administrator() {
     const { data: adminsData, isLoading: loading, error, refetch } = useQuery({
         queryKey: ADMIN_QUERY_KEYS.list(),
         queryFn: async () => {
-            const data = await getAllAdmins()
+            const data = await get('/api/auth/admins/')
             // Map API response to component format
             return data.map((admin) => ({
                 id: admin.id,
@@ -106,7 +106,7 @@ export default function Administrator() {
     // Create admin mutation
     const createMutation = useMutation({
         mutationFn: async (formDataToSend) => {
-            return await createAdmin(formDataToSend)
+            return await create('/api/auth/admins/create/', formDataToSend)
         },
         onSuccess: () => {
             // Invalidate and refetch administrators list
@@ -128,7 +128,7 @@ export default function Administrator() {
     // Update admin mutation
     const updateMutation = useMutation({
         mutationFn: async ({ adminId, formDataToSend }) => {
-            return await updateAdmin(adminId, formDataToSend)
+            return await update(`/api/auth/admins/${adminId}/update/`, formDataToSend)
         },
         onSuccess: () => {
             // Invalidate and refetch administrators list
@@ -235,7 +235,7 @@ export default function Administrator() {
     // Delete admin mutation
     const deleteMutation = useMutation({
         mutationFn: async (adminId) => {
-            return await deleteAdmin(adminId)
+            return await del(`/api/auth/admins/${adminId}/delete/`)
         },
         onSuccess: (_, adminId) => {
             // Optimistically update the cache

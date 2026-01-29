@@ -1,20 +1,29 @@
 "use client"
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { ArrowLeft, Plus, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { getAllPrograms } from '@/lib/api'
+import { get, del, getCurrentUser } from '@/lib/api'
+import Swal from 'sweetalert2'
 
 export default function ProgramManage() {
     const router = useRouter()
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false)
 
-    // Fetch programs using TanStack Query
+    // Check if current user is super admin
+    useEffect(() => {
+        const currentUser = getCurrentUser()
+        const superAdmin = currentUser?.is_super_admin === true || currentUser?.is_superuser === true || currentUser?.role === 'SUPERUSER'
+        setIsSuperAdmin(superAdmin)
+    }, [])
+
+    // Fetch programs using TanStack Query (all admins can view)
     const { data: programsData, isLoading: loading, error, refetch } = useQuery({
         queryKey: ['programs'],
         queryFn: async () => {
-            const data = await getAllPrograms()
+            const data = await get('/api/program/programs/')
             // Map API response to component format
             return data.map((program, index) => ({
                 id: program.id,
@@ -31,17 +40,81 @@ export default function ProgramManage() {
     const programs = programsData || []
 
     const handleAddProgram = () => {
+        if (!isSuperAdmin) {
+            return
+        }
         router.push('/admin/program-manage/create-program')
     }
 
     const handleEdit = (id) => {
+        if (!isSuperAdmin) {
+            return
+        }
         router.push(`/admin/program-manage/create-program?id=${id}`)
     }
 
-    const handleDelete = (id) => {
-        // TODO: Implement delete functionality
-        console.log('Delete program:', id)
+    const handleDelete = async (id) => {
+        if (!isSuperAdmin) {
+            return
+        }
+
+        // Find the program to get its name for the confirmation message
+        const programToDelete = programs.find(program => program.id === id)
+        const programName = programToDelete?.programName || 'this program'
+
+        // Show SweetAlert2 confirmation dialog
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: `Do you want to delete ${programName}? This action cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626', // red-600
+            cancelButtonColor: '#6b7280', // gray-500
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+        })
+
+        if (result.isConfirmed) {
+            try {
+                // Show loading state
+                Swal.fire({
+                    title: 'Deleting...',
+                    text: 'Please wait while we delete the program.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading()
+                    }
+                })
+
+                // Call delete API
+                await del(`/api/program/programs/${id}/`)
+
+                // Show success message
+                await Swal.fire({
+                    title: 'Deleted!',
+                    text: `${programName} has been deleted successfully.`,
+                    icon: 'success',
+                    confirmButtonColor: '#FFA100',
+                    timer: 2000,
+                    timerProgressBar: true,
+                })
+
+                // Refresh the programs list
+                refetch()
+            } catch (err) {
+                console.error('Error deleting program:', err)
+                // Show error message
+                await Swal.fire({
+                    title: 'Error!',
+                    text: err.message || 'Failed to delete program. Please try again.',
+                    icon: 'error',
+                    confirmButtonColor: '#dc2626',
+                })
+            }
+        }
     }
+
 
     return (
         <div className="w-full bg-white rounded-lg p-6">
@@ -56,15 +129,17 @@ export default function ProgramManage() {
                     </button>
                     <h1 className="text-2xl font-semibold">Program Manage</h1>
                 </div>
-                <div>
-                    <Button
-                        onClick={handleAddProgram}
-                        className="bg-[#FFA100] hover:bg-[#FFA100]/90 text-white rounded-md px-4 py-2 flex items-center gap-2 cursor-pointer"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Add Program
-                    </Button>
-                </div>
+                {isSuperAdmin && (
+                    <div>
+                        <Button
+                            onClick={handleAddProgram}
+                            className="bg-[#FFA100] hover:bg-[#FFA100]/90 text-white rounded-md px-4 py-2 flex items-center gap-2 cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Program
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {/* Loading State */}
@@ -118,20 +193,24 @@ export default function ProgramManage() {
                                         <td className="py-4 px-4 text-gray-600">{program.subHeading}</td>
                                         <td className="py-4 px-4 text-gray-600">{program.programId}</td>
                                         <td className="py-4 px-4">
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => handleEdit(program.id)}
-                                                    className="w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded flex items-center justify-center transition-colors cursor-pointer"
-                                                >
-                                                    <Pencil className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(program.id)}
-                                                    className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded flex items-center justify-center transition-colors cursor-pointer"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
+                                            {isSuperAdmin ? (
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => handleEdit(program.id)}
+                                                        className="w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded flex items-center justify-center transition-colors cursor-pointer"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(program.id)}
+                                                        className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded flex items-center justify-center transition-colors cursor-pointer"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400 text-sm">No access</span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))

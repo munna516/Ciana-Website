@@ -5,14 +5,25 @@ import { ArrowLeft, Plus, Upload, X, Bold, Italic, Underline, Strikethrough, Ali
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
-import { getProgramById } from '@/lib/api'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { get, create, update, getCurrentUser } from '@/lib/api'
+import toast from 'react-hot-toast'
 
 function CreateProgramContent() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const programId = searchParams.get('id')
   const isEditMode = !!programId
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  // Check if current user is super admin
+  useEffect(() => {
+    const currentUser = getCurrentUser()
+    const superAdmin = currentUser?.is_super_admin === true || currentUser?.is_superuser === true || currentUser?.role === 'SUPERUSER'
+    setIsSuperAdmin(superAdmin)
+  }, [])
 
   const [formData, setFormData] = useState({
     programName: '',
@@ -232,10 +243,147 @@ function CreateProgramContent() {
     }
   }
 
-  const handleSave = () => {
-    // TODO: Implement save functionality
-    console.log('Save program:', formData)
+  // Create program mutation
+  const createMutation = useMutation({
+    mutationFn: async (formDataToSend) => {
+      try {
+        return await create('/api/program/programs/', formDataToSend)
+      } catch (error) {
+        console.error('Create program mutation error:', error)
+        // Re-throw with more context
+        throw error
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['programs'] })
+      toast.success('Program created successfully')
+      router.push('/admin/program-manage')
+    },
+    onError: (err) => {
+      console.error('Create program error:', err)
+      const errorMessage = err.message || 'Failed to create program. Please try again.'
+      toast.error(errorMessage, {
+        duration: 6000,
+      })
+      setSaving(false) // Ensure saving state is reset
+    },
+  })
+
+  // Update program mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ programId, formDataToSend }) => {
+      try {
+        return await update(`/api/program/programs/${programId}/`, formDataToSend)
+      } catch (error) {
+        console.error('Update program mutation error:', error)
+        // Re-throw with more context
+        throw error
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['programs'] })
+      queryClient.invalidateQueries({ queryKey: ['program', programId] })
+      toast.success('Program updated successfully')
+      router.push('/admin/program-manage')
+    },
+    onError: (err) => {
+      console.error('Update program error:', err)
+      const errorMessage = err.message || 'Failed to update program. Please try again.'
+      toast.error(errorMessage, {
+        duration: 6000,
+      })
+      setSaving(false) // Ensure saving state is reset
+    },
+  })
+
+  const handleSave = async () => {
+    // Prevent non-super admins from saving
+    if (!isSuperAdmin) {
+      toast.error('Only super admins can create or edit programs')
+      router.push('/admin/program-manage')
+      return
+    }
+
+    // Validation
+    if (!formData.programName || !formData.shortDescription) {
+      toast.error('Please fill in program name and short description')
+      return
+    }
+
+    if (formData.sections.length === 0) {
+      toast.error('Please add at least one section')
+      return
+    }
+
+    // Validate sections
+    for (let i = 0; i < formData.sections.length; i++) {
+      const section = formData.sections[i]
+      if (!section.title || !section.description) {
+        toast.error(`Section ${i + 1}: Please fill in title and description`)
+        return
+      }
+    }
+
+    try {
+      setSaving(true)
+
+      // Create FormData according to API structure
+      const formDataToSend = new FormData()
+      
+      // Basic program fields
+      formDataToSend.append('name', formData.programName)
+      formDataToSend.append('short_description', formData.shortDescription)
+
+      // Feature image
+      if (formData.featureImage instanceof File) {
+        formDataToSend.append('feature_image', formData.featureImage)
+      }
+
+      // Prepare program_sections array (without images)
+      const programSections = formData.sections.map((section, index) => ({
+        title: section.title,
+        description: section.description
+      }))
+
+      // Append program_sections as JSON string
+      formDataToSend.append('program_sections', JSON.stringify(programSections))
+
+      // Append section images with numbered keys (section_image_1, section_image_2, etc.)
+      formData.sections.forEach((section, index) => {
+        if (section.image instanceof File) {
+          formDataToSend.append(`section_image_${index + 1}`, section.image)
+        }
+      })
+
+      // Log FormData before sending
+      console.log('Sending FormData:', {
+        entries: Array.from(formDataToSend.entries()).map(([key, value]) => [
+          key,
+          value instanceof File ? `File: ${value.name} (${value.size} bytes)` : value
+        ]),
+        url: isEditMode 
+          ? `${process.env.NEXT_PUBLIC_API_URL}/api/program/programs/${programId}/`
+          : `${process.env.NEXT_PUBLIC_API_URL}/api/program/programs/`
+      })
+
+      if (isEditMode && programId) {
+        // Update existing program
+        updateMutation.mutate({ programId: parseInt(programId), formDataToSend })
+      } else {
+        // Create new program
+        createMutation.mutate(formDataToSend)
+      }
+    } catch (err) {
+      console.error('Error saving program:', err)
+      toast.error(err.message || 'Failed to save program. Please try again.', {
+        duration: 6000,
+      })
+      setSaving(false)
+    }
+    // Note: Don't set saving to false here if using mutations, as they handle it in onError
   }
+
+  const isSaving = createMutation.isPending || updateMutation.isPending || saving
 
   const handleCancel = () => {
     router.back()
@@ -262,8 +410,23 @@ function CreateProgramContent() {
         </div>
       )}
 
+      {/* Access Denied Message */}
+      {!isSuperAdmin && !loadingProgram && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
+          <p className="font-semibold">Access Denied</p>
+          <p className="mt-1">Only super admins can create or edit programs.</p>
+          <Button
+            onClick={() => router.push('/admin/program-manage')}
+            variant="outline"
+            className="mt-3 border-red-500 text-red-500 hover:bg-red-50 cursor-pointer"
+          >
+            Go Back to Program List
+          </Button>
+        </div>
+      )}
+
       {/* Form */}
-      {!loadingProgram && (
+      {!loadingProgram && isSuperAdmin && (
         <div className="space-y-6">
         {/* Program Name */}
         <div>
@@ -476,9 +639,17 @@ function CreateProgramContent() {
           </Button>
           <Button
             onClick={handleSave}
-            className="bg-[#FFA100] hover:bg-[#FFA100]/90 text-white cursor-pointer"
+            disabled={isSaving}
+            className="bg-[#FFA100] hover:bg-[#FFA100]/90 text-white cursor-pointer disabled:opacity-50"
           >
-            {isEditMode ? 'Update Program' : 'Save Program'}
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                {isEditMode ? 'Updating...' : 'Saving...'}
+              </>
+            ) : (
+              isEditMode ? 'Update Program' : 'Save Program'
+            )}
           </Button>
         </div>
       </div>
