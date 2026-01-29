@@ -28,7 +28,20 @@ export async function apiRequest(endpoint, options = {}) {
 
     try {
         const response = await fetch(url, config);
-        const data = await response.json();
+        
+        // Try to parse JSON response, handle non-JSON errors
+        let data;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            const text = await response.text();
+            // If we got HTML, it's likely an error page
+            if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<!doctype')) {
+                throw new Error(`Server returned HTML instead of JSON. Status: ${response.status} ${response.statusText}. The endpoint may be incorrect or the server is returning an error page.`);
+            }
+            throw new Error(text || `Server returned ${response.status} ${response.statusText}`);
+        }
 
         if (!response.ok) {
             // Handle token expiration
@@ -39,7 +52,16 @@ export async function apiRequest(endpoint, options = {}) {
                     // Retry the original request with new token
                     config.headers['Authorization'] = `Bearer ${localStorage.getItem('accessToken')}`;
                     const retryResponse = await fetch(url, config);
-                    const retryData = await retryResponse.json();
+                    
+                    // Parse retry response
+                    let retryData;
+                    const retryContentType = retryResponse.headers.get('content-type');
+                    if (retryContentType && retryContentType.includes('application/json')) {
+                        retryData = await retryResponse.json();
+                    } else {
+                        const retryText = await retryResponse.text();
+                        throw new Error(retryText || `Server returned ${retryResponse.status} ${retryResponse.statusText}`);
+                    }
 
                     if (!retryResponse.ok) {
                         throw new Error(retryData.message || 'Request failed');
@@ -53,7 +75,7 @@ export async function apiRequest(endpoint, options = {}) {
                 }
             }
 
-            throw new Error(data.message || 'Request failed');
+            throw new Error(data.message || data.detail || 'Request failed');
         }
 
         return data;
@@ -424,4 +446,29 @@ export async function deleteAdmin(adminId) {
     } catch (error) {
         throw error;
     }
+}
+
+/**
+ * Fetch all programs
+ * @returns {Promise} Array of program objects
+ */
+export async function getAllPrograms() {
+    return await apiRequest('/api/program/programs/', {
+        method: 'GET',
+    });
+}
+
+/**
+ * Fetch a single program by ID
+ * @param {number} programId - ID of the program
+ * @returns {Promise} Program object
+ */
+export async function getProgramById(programId) {
+    // Fetch all programs and filter by ID
+    const programs = await getAllPrograms()
+    const program = programs.find(p => p.id === programId)
+    if (!program) {
+        throw new Error('Program not found')
+    }
+    return program
 }
