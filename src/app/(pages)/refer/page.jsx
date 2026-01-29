@@ -1,17 +1,17 @@
-import dynamic from 'next/dynamic'
+'use client'
 
-export const dynamic = 'force-dynamic'
-
-const PreScreenWizard = dynamic(() => import('@/components/PreScreen/PreScreenWizard'), {
-  ssr: false,
-  loading: () => (
-    <div className="min-h-[60vh] flex items-center justify-center text-gray-600">
-      Loading...
-    </div>
-  ),
-})
+import { Suspense } from 'react'
+import PreScreenWizard from '@/components/PreScreen/PreScreenWizard'
 
 export default function ReferPage() {
-  return <PreScreenWizard mode="refer" />
+    return (
+        <Suspense fallback={
+            <div className="w-full bg-gray-50 min-h-screen pt-32 pb-16 flex items-center justify-center">
+                <div className="text-gray-600">Loading...</div>
+            </div>
+        }>
+            <PreScreenWizard mode="refer" />
+        </Suspense>
+    )
 }
 

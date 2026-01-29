@@ -1,17 +1,12 @@
-import dynamic from 'next/dynamic'
+'use client'
 
-export const dynamic = 'force-dynamic'
-
-const PreScreenWizard = dynamic(() => import('@/components/PreScreen/PreScreenWizard'), {
-    ssr: false,
-    loading: () => (
-        <div className="min-h-[60vh] flex items-center justify-center text-gray-600">
-            Loading...
-        </div>
-    ),
-})
+import { Suspense } from 'react'
+import PreScreenWizard from '@/components/PreScreen/PreScreenWizard'
 
 export default function ApplyPage() {
-    return <PreScreenWizard mode="apply" />
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <PreScreenWizard mode="apply" />
+        </Suspense>
+    )
 }
-
