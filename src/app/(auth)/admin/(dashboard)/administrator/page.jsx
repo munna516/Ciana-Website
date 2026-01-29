@@ -178,14 +178,6 @@ export default function Administrator() {
             }
         }
 
-        // Create FormData for multipart/form-data
-        // API expects exactly these fields for create admin:
-        // - email (Text)
-        // - full_name (Text)
-        // - contact_number (Text)
-        // - image (File, optional)
-        // - password (Text)
-        // - password_confirm (Text)
         const formDataToSend = new FormData()
         formDataToSend.append('full_name', formData.name)
         formDataToSend.append('contact_number', formData.number)
