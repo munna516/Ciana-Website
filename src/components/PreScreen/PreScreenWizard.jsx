@@ -814,7 +814,7 @@ export default function PreScreenWizard({ mode }) {
                                                 <Input
                                                     value={data.signature_name}
                                                     onChange={(e) => setData((p) => ({ ...p, signature_name: e.target.value }))}
-                                                    placeholder="name"
+                                                    placeholder="Full Name"
                                                     className={inputBase}
                                                 />
                                             </Field>

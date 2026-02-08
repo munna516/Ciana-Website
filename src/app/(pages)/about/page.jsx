@@ -17,7 +17,7 @@ export default function AboutUs() {
                         About Us
                     </h1>
                     <p className="max-w-3xl text-xs sm:text-sm md:text-base lg:text-lg text-gray-100 leading-relaxed">
-                        At Healing Haven Home Care, we are committed to providing safe, affordable, and
+                        At Starlight Path, we are committed to providing safe, affordable, and
                         supportive shared housing for individuals who need stability, dignity, and a place
                         to call home. Our communities are built on compassion, trust, and care.
                     </p>
@@ -60,9 +60,9 @@ export default function AboutUs() {
 
                     <div className="flex flex-col lg:flex-row gap-8 sm:gap-10 md:gap-12 lg:gap-16 items-center">
 
-                        <div className="w-full h-full ">
+                        <div className="w-full h-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
                             <img
-                                src="/assets/images/serve.png"
+                                src="/assets/images/about.jpeg"
                                 alt="Supportive shared housing"
                                 className="w-full h-full object-cover"
                             />

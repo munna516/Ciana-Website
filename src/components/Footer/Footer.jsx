@@ -9,7 +9,6 @@ export default function Footer() {
         { label: 'About Us', href: '/about' },
         { label: 'Eligibility', href: '/eligibility' },
         { label: 'Apply Now', href: '/apply' },
-        { label: 'Contact', href: '/contact' },
     ];
 
     return (
@@ -85,7 +84,7 @@ export default function Footer() {
                                     href="tel:25858-854545"
                                     className="hover:text-[#FFA100] transition-colors duration-200"
                                 >
-                                    25858-854545
+                                    770-946-6146
                                 </a>
                             </li>
                             <li className="text-sm sm:text-base md:text-lg text-white/90">
@@ -93,11 +92,11 @@ export default function Footer() {
                                     href="mailto:info@starlightpath.com"
                                     className="hover:text-[#FFA100] transition-colors duration-200"
                                 >
-                                    info@starlightpath.com
+                                    info@starlightpath.org
                                 </a>
                             </li>
                             <li className="text-sm sm:text-base md:text-lg text-white/90">
-                                2115 Ash San Jose, South Dakota 2584714
+                                139 W. Ellis Rd. Griffin, GA 30223
                             </li>
                         </ul>
                     </div>
@@ -116,16 +115,16 @@ export default function Footer() {
                     {/* Social Media Icons */}
                     <div className="flex items-center gap-3 sm:gap-4">
                         <a
-                            href="https://facebook.com"
+                            href="https://www.facebook.com/share/181jAN6BWL/?mibextid=wwXIfr"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-10 h-10 sm:w-12 sm:h-12 border border-[#FFA100] rounded flex items-center justify-center hover:bg-[#FFA100] transition-colors duration-200"
+                            className="w-10 h-10 sm:w-12 sm:h-12 border border-[#FFA100] rounded flex items-center justify-center transition-colors duration-200 hover:text-white hover:bg-[#FFA100]"
                             aria-label="Facebook"
                         >
                             <Facebook className="w-5 h-5 sm:w-6 sm:h-6 text-[#FFA100] hover:text-white" />
                         </a>
                         <a
-                            href="https://instagram.com"
+                            href="https://www.instagram.com/star.light.path?igsh=OXlwaWU0ajRxemh3&utm_source=qr"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="w-10 h-10 sm:w-12 sm:h-12 border border-[#FFA100] rounded flex items-center justify-center hover:bg-[#FFA100] transition-colors duration-200"
@@ -134,7 +133,7 @@ export default function Footer() {
                             <Instagram className="w-5 h-5 sm:w-6 sm:h-6 text-[#FFA100] hover:text-white" />
                         </a>
                         <a
-                            href="https://twitter.com"
+                            href="https://x.com/starlight_path?s=21"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="w-10 h-10 sm:w-12 sm:h-12 border border-[#FFA100] rounded flex items-center justify-center hover:bg-[#FFA100] transition-colors duration-200"
