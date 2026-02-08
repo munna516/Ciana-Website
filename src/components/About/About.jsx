@@ -22,25 +22,7 @@ export default function About() {
                             </p>
                         </div>
 
-                        {/* Statistics */}
-                        <div className="flex flex-row gap-12 sm:gap-16 md:gap-20 pt-4">
-                            <div className="flex flex-col">
-                                <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-none">
-                                    50+
-                                </span>
-                                <span className="text-base sm:text-lg md:text-xl text-gray-600 mt-3 font-medium">
-                                    Member Join us
-                                </span>
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-none">
-                                    2+
-                                </span>
-                                <span className="text-base sm:text-lg md:text-xl text-gray-600 mt-3 font-medium">
-                                    Years Of Experience
-                                </span>
-                            </div>
-                        </div>
+                      
                     </div>
 
                     {/* Right Side - Images */}
