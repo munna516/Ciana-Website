@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Search, Eye, Loader2 } from 'lucide-react';
+import { ArrowLeft, Search, Eye, Loader2, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { get } from '@/lib/api';
+import { get, update } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 
@@ -16,6 +16,8 @@ export default function AllApplications() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
+    const [activeTab, setActiveTab] = useState('UNARCHIVE');
+    const [archivingIds, setArchivingIds] = useState(new Set());
 
     // Fetch applications data
     useEffect(() => {
@@ -76,14 +78,34 @@ export default function AllApplications() {
         fetchApplications();
     }, [currentPage, searchQuery]);
 
-    // Handle search with debounce
+    useEffect(() => {
+        const filtered = applications
+            .filter(app => {
+                const status = (app.status || 'unarchive').toString().toLowerCase();
+                return activeTab === 'UNARCHIVE' ? status !== 'archive' : status === 'archive';
+            })
+            .filter(app => {
+                if (!searchQuery) return true;
+                const q = searchQuery.toLowerCase();
+                return (
+                    app.full_name?.toLowerCase().includes(q) ||
+                    app.email?.toLowerCase().includes(q) ||
+                    app.phone_number?.includes(q) ||
+                    app.contact_number?.includes(q)
+                );
+            });
+        const pages = Math.max(1, Math.ceil(filtered.length / 10));
+        setTotalPages(pages);
+        setTotalCount(filtered.length);
+        if (currentPage > pages) setCurrentPage(1);
+    }, [applications, searchQuery, activeTab]);
+
     const handleSearch = (e) => {
         const value = e.target.value;
         setSearchQuery(value);
         setCurrentPage(1); // Reset to first page on search
     };
 
-    // Handle pagination
     const handlePrevPage = () => {
         if (currentPage > 1) {
             setCurrentPage(currentPage - 1);
@@ -96,27 +118,27 @@ export default function AllApplications() {
         }
     };
 
-    // Handle view application details
     const handleViewApplication = (applicationId) => {
-        // Navigate to application details page
         router.push(`/admin/all-applications/${applicationId}`);
     };
 
-    // Format phone number
     const formatPhoneNumber = (phone) => {
         if (!phone) return 'N/A';
-        // Remove all non-digits
         const cleaned = phone.replace(/\D/g, '');
-        // Format as (XXX) XXX-XXXX
         if (cleaned.length === 10) {
             return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
         }
         return phone;
     };
+ 
 
-    // Filter applications client-side if needed (fallback)
-    const filteredApplications = searchQuery
-        ? applications.filter(app => {
+    const filteredApplications = applications
+        .filter(app => {
+            const status = (app.status || 'unarchive').toString().toLowerCase();
+            return activeTab === 'UNARCHIVE' ? status !== 'archive' : status === 'archive';
+        })
+        .filter(app => {
+            if (!searchQuery) return true;
             const query = searchQuery.toLowerCase();
             return (
                 app.full_name?.toLowerCase().includes(query) ||
@@ -124,12 +146,40 @@ export default function AllApplications() {
                 app.phone_number?.includes(query) ||
                 app.contact_number?.includes(query)
             );
-        })
-        : applications;
+        });
+
+    const pageSize = 10;
+    const startIndex = (currentPage - 1) * pageSize;
+    const visibleApplications = filteredApplications.slice(startIndex, startIndex + pageSize);
+
+    const handleArchive = async (application) => {
+        if (!application?.id) return;
+        try {
+            setArchivingIds(prev => new Set(prev).add(application.id));
+            const full_name = application.full_name || application.name || '';
+            const email = application.email || '';
+            await update(`/api/application/${application.id}/update`, {
+                full_name,
+                email,
+                status: 'archive'
+            });
+            toast.success('Application archived');
+            setApplications(prev =>
+                prev.map(a => (a.id === application.id ? { ...a, status: 'archive' } : a))
+            );
+        } catch (err) {
+            toast.error(err?.message || 'Failed to archive');
+        } finally {
+            setArchivingIds(prev => {
+                const next = new Set(prev);
+                next.delete(application.id);
+                return next;
+            });
+        }
+    };
 
     return (
         <div className="w-full bg-white rounded-lg p-4 sm:p-6">
-            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
                     <button
@@ -138,10 +188,9 @@ export default function AllApplications() {
                     >
                         <ArrowLeft className="w-5 h-5 text-gray-600" />
                     </button>
-                    <h1 className="text-2xl font-semibold text-gray-800">All Applications</h1>
+                    <h1 className="text-2xl font-semibold text-gray-800">Applications</h1>
                 </div>
 
-                {/* Search Bar */}
                 <div className="relative w-full md:max-w-md">
                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
@@ -154,7 +203,24 @@ export default function AllApplications() {
                 </div>
             </div>
 
-            {/* Loading State */}
+            <div className="flex items-center gap-2 mb-4">
+                <Button
+                    onClick={() => { setActiveTab('UNARCHIVE'); setCurrentPage(1); }}
+                    className={`${activeTab === 'UNARCHIVE' ? 'bg-[#FFA100] text-white' : 'bg-yellow-100 text-gray-700 hover:bg-yellow-200'}`}
+                >
+                    All Applications
+                </Button>
+                <Button
+                    onClick={() => { setActiveTab('ARCHIVE'); setCurrentPage(1); }}
+                    className={`${activeTab === 'ARCHIVE' ? 'bg-[#FFA100] text-white' : 'bg-yellow-100 text-gray-700 hover:bg-yellow-200'}`}
+                >
+                    Archive Applications
+                </Button>
+                <div className="ml-auto text-sm text-gray-600">
+                    Total: {totalCount}
+                </div>
+            </div>
+
             {loading && (
                 <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-[#FFA100] mr-2" />
@@ -162,7 +228,6 @@ export default function AllApplications() {
                 </div>
             )}
 
-            {/* Error State */}
             {error && !loading && (
                 <div className="flex items-center justify-center py-12">
                     <div className="text-center">
@@ -177,10 +242,8 @@ export default function AllApplications() {
                 </div>
             )}
 
-            {/* Table */}
             {!loading && !error && (
                 <>
-                    {/* Desktop/Tablet Table */}
                     <div className="hidden md:block overflow-x-auto">
                         <table className="w-full border-collapse">
                             <thead>
@@ -191,11 +254,14 @@ export default function AllApplications() {
                                     <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">Phone Number</th>
                                     <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">Date of Birth</th>
                                     <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">Action</th>
+                                    {activeTab === 'UNARCHIVE' && (
+                                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">Archive</th>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredApplications.length > 0 ? (
-                                    filteredApplications.map((application, index) => {
+                                {visibleApplications.length > 0 ? (
+                                    visibleApplications.map((application, index) => {
                                         const serialNumber = (currentPage - 1) * 10 + index + 1;
                                         return (
                                             <tr
@@ -226,12 +292,24 @@ export default function AllApplications() {
                                                         <Eye className="w-5 h-5 text-gray-600 hover:text-[#FFA100]" />
                                                     </button>
                                                 </td>
+                                                {activeTab === 'UNARCHIVE' && (
+                                                    <td className="py-4 px-4">
+                                                        <button
+                                                            onClick={() => handleArchive(application)}
+                                                            disabled={archivingIds.has(application.id)}
+                                                            className="p-2 hover:bg-gray-100 rounded-md transition-colors cursor-pointer disabled:opacity-50"
+                                                            title="Archive"
+                                                        >
+                                                            <Check className="w-5 h-5 text-gray-600 hover:text-[#16a34a]" />
+                                                        </button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         );
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan={6} className="py-12 text-center text-gray-500">
+                                        <td colSpan={activeTab === 'UNARCHIVE' ? 7 : 6} className="py-12 text-center text-gray-500">
                                             No applications found
                                         </td>
                                     </tr>
@@ -240,10 +318,9 @@ export default function AllApplications() {
                         </table>
                     </div>
 
-                    {/* Mobile Cards */}
                     <div className="md:hidden space-y-3">
-                        {filteredApplications.length > 0 ? (
-                            filteredApplications.map((application, index) => {
+                        {visibleApplications.length > 0 ? (
+                            visibleApplications.map((application, index) => {
                                 const serialNumber = (currentPage - 1) * 10 + index + 1;
                                 return (
                                     <div
@@ -255,13 +332,25 @@ export default function AllApplications() {
                                                 <p className="text-xs text-gray-500 mb-1">SL no.</p>
                                                 <p className="text-sm font-semibold text-gray-800">#{serialNumber}</p>
                                             </div>
-                                            <button
-                                                onClick={() => handleViewApplication(application.id)}
-                                                className="p-2 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors flex-shrink-0"
-                                                title="View Details"
-                                            >
-                                                <Eye className="w-5 h-5 text-gray-700" />
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleViewApplication(application.id)}
+                                                    className="p-2 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors flex-shrink-0"
+                                                    title="View Details"
+                                                >
+                                                    <Eye className="w-5 h-5 text-gray-700" />
+                                                </button>
+                                                {activeTab === 'UNARCHIVE' && (
+                                                    <button
+                                                        onClick={() => handleArchive(application)}
+                                                        disabled={archivingIds.has(application.id)}
+                                                        className="p-2 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors flex-shrink-0 disabled:opacity-50"
+                                                        title="Archive"
+                                                    >
+                                                        <Check className="w-5 h-5 text-gray-700" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <div className="mt-3 grid grid-cols-1 gap-3">
@@ -302,7 +391,6 @@ export default function AllApplications() {
                         )}
                     </div>
 
-                    {/* Pagination */}
                     {totalPages > 1 && (
                         <div className="flex flex-wrap items-center justify-center gap-2 mt-6">
                             <Button
