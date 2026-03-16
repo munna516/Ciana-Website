@@ -14,8 +14,6 @@ export default function AllApplications() {
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalCount, setTotalCount] = useState(0);
     const [activeTab, setActiveTab] = useState('UNARCHIVE');
     const [archivingIds, setArchivingIds] = useState(new Set());
 
@@ -26,34 +24,40 @@ export default function AllApplications() {
                 setLoading(true);
                 setError(null);
 
-                // Build query parameters
-                const params = {
-                    page: currentPage,
-                    search: searchQuery || undefined,
-                };
-
-                // Remove undefined values
-                Object.keys(params).forEach(key =>
-                    params[key] === undefined && delete params[key]
-                );
-
-                const response = await get('/api/application/list/', params);
+                const firstResponse = await get('/api/application/list/', { page: 1 });
 
                 // Handle different response formats
-                if (response.results) {
-                    // Paginated response
-                    setApplications(response.results);
-                    setTotalPages(response.total_pages || 1);
-                    setTotalCount(response.count || response.results.length);
-                } else if (Array.isArray(response)) {
+                if (firstResponse.results) {
+                    const firstPageResults = Array.isArray(firstResponse.results) ? firstResponse.results : [];
+                    const inferredTotalPages = firstResponse.total_pages || (
+                        firstResponse.count && firstPageResults.length
+                            ? Math.ceil(firstResponse.count / firstPageResults.length)
+                            : 1
+                    );
+
+                    if (inferredTotalPages <= 1) {
+                        setApplications(firstPageResults);
+                    } else {
+                        const remainingResponses = await Promise.all(
+                            Array.from({ length: inferredTotalPages - 1 }, (_, index) =>
+                                get('/api/application/list/', { page: index + 2 })
+                            )
+                        );
+
+                        const allApplications = [
+                            ...firstPageResults,
+                            ...remainingResponses.flatMap(response =>
+                                Array.isArray(response?.results) ? response.results : []
+                            ),
+                        ];
+
+                        setApplications(allApplications);
+                    }
+                } else if (Array.isArray(firstResponse)) {
                     // Simple array response
-                    setApplications(response);
-                    setTotalPages(1);
-                    setTotalCount(response.length);
+                    setApplications(firstResponse);
                 } else {
                     setApplications([]);
-                    setTotalPages(1);
-                    setTotalCount(0);
                 }
             } catch (err) {
                 console.error('Error fetching applications:', err);
@@ -76,29 +80,7 @@ export default function AllApplications() {
         };
 
         fetchApplications();
-    }, [currentPage, searchQuery]);
-
-    useEffect(() => {
-        const filtered = applications
-            .filter(app => {
-                const status = (app.status || 'unarchive').toString().toLowerCase();
-                return activeTab === 'UNARCHIVE' ? status !== 'archive' : status === 'archive';
-            })
-            .filter(app => {
-                if (!searchQuery) return true;
-                const q = searchQuery.toLowerCase();
-                return (
-                    app.full_name?.toLowerCase().includes(q) ||
-                    app.email?.toLowerCase().includes(q) ||
-                    app.phone_number?.includes(q) ||
-                    app.contact_number?.includes(q)
-                );
-            });
-        const pages = Math.max(1, Math.ceil(filtered.length / 10));
-        setTotalPages(pages);
-        setTotalCount(filtered.length);
-        if (currentPage > pages) setCurrentPage(1);
-    }, [applications, searchQuery, activeTab]);
+    }, []);
 
     const handleSearch = (e) => {
         const value = e.target.value;
@@ -149,8 +131,16 @@ export default function AllApplications() {
         });
 
     const pageSize = 10;
+    const totalCount = filteredApplications.length;
+    const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
     const startIndex = (currentPage - 1) * pageSize;
     const visibleApplications = filteredApplications.slice(startIndex, startIndex + pageSize);
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(1);
+        }
+    }, [currentPage, totalPages]);
 
     const handleArchive = async (application) => {
         if (!application?.id) return;
