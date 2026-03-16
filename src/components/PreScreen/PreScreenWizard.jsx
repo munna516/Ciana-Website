@@ -403,7 +403,7 @@ export default function PreScreenWizard({ mode }) {
         toast.error("Please complete the shared household guidelines section.");
         return false;
       }
-      if (!data.signature_name || !data.signature_date) {
+      if (!data.signature_name) {
         toast.error("Please provide signature name and date.");
         return false;
       }
@@ -983,7 +983,7 @@ export default function PreScreenWizard({ mode }) {
             <Button
               onClick={handleBack}
               variant="outline"
-              className="w-full sm:w-[300px] border-primary text-primary hover:bg-orange-50"
+              className="w-full sm:w-[300px] border-primary text-primary cursor-pointer hover:bg-orange-50"
               disabled={step === 1 || submitting}
             >
               Back
@@ -992,7 +992,7 @@ export default function PreScreenWizard({ mode }) {
             {step < 3 ? (
               <Button
                 onClick={handleNext}
-                className="w-full sm:w-[300px] bg-gradient-to-r from-[#FFA100] to-[#FFD700] hover:opacity-95 text-white"
+                className="w-full sm:w-[300px] bg-gradient-to-r from-[#FFA100] to-[#FFD700] cursor-pointer hover:opacity-95 text-white"
                 disabled={submitting}
               >
                 Next
@@ -1000,7 +1000,7 @@ export default function PreScreenWizard({ mode }) {
             ) : (
               <Button
                 onClick={handleSubmit}
-                className="w-full sm:w-[300px] bg-gradient-to-r from-[#FFA100] to-[#FFD700] hover:opacity-95 text-white"
+                className="w-full sm:w-[300px] bg-gradient-to-r cursor-pointer from-[#FFA100] to-[#FFD700] hover:opacity-95 text-white"
                 disabled={submitting}
               >
                 {submitting ? "Submitting..." : "Submit Pre-Screen Form"}
