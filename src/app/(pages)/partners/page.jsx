@@ -72,7 +72,7 @@ export default function OurPartners() {
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 md:py-16">
         {/* Partnership Philosophy */}
         <section>
-          <div className="flex flex-col lg:flex-row gap-8 sm:gap-10 md:gap-12 lg:gap-16 items-center">
+          <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 md:gap-6 lg:gap-6 items-center">
             {/* Image */}
             <div className="w-full lg:w-1/2 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl flex-shrink-0">
               <img
@@ -104,32 +104,42 @@ export default function OurPartners() {
 
         {/* Partners Grid */}
         <section className="mt-14 sm:mt-16 md:mt-20">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 mb-2">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 mb-2 text-center">
             Meet Our Partners
           </h2>
-          <p className="text-sm sm:text-base text-gray-600 mb-8 max-w-3xl">
+          <p className="text-sm sm:text-base text-gray-600 mb-10 mx-auto max-w-2xl text-center">
             We are proud to work alongside these dedicated organizations who
             help us fulfill our mission every single day.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {partners.map((partner) => (
-              <div
-                key={partner.name}
-                className="rounded-2xl border border-gray-100 bg-white shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 p-6 sm:p-8 flex flex-col"
-              >
-                <div className="text-4xl mb-4">{partner.icon}</div>
-                <span className="inline-block text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 rounded-full px-3 py-1 mb-3 self-start">
-                  {partner.type}
-                </span>
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
-                  {partner.name}
-                </h3>
-                <p className="text-sm text-gray-600 leading-relaxed flex-1">
-                  {partner.description}
-                </p>
-              </div>
-            ))}
+          
+          <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 md:gap-6 lg:gap-10 justify-between items-center">
+            <div className="w-full ">
+              <p className="text-base sm:text-lg md:text-xl text-gray-800 leading-relaxed">
+                <span className="font-semibold text-green-700">
+                  Silver Support Services, Inc.
+                </span>{" "}
+                's mission is to provide direct access to essential resources,
+                ensuring seniors and veterans can live independently, safely,
+                and with dignity. The organization acts as a bridge between
+                older adults and the services they need, including healthcare,
+                housing assistance, social engagement programs, transportation,
+                and financial aid resources. It is a 501(c)(3),
+                community-based nonprofit entity created to address the issues
+                facing Seniors and Veterans. It was specifically created to
+                address the State of Seniors and Veterans and to provide
+                answers and solutions that have a positive impact on their
+                plight and, ultimately, their outcomes.
+              </p>
+            </div>
+
+            <div className="w-full lg:w-1/4 rounded-2xl p-3 bg-[#f7f7f7] sm:rounded-3xl overflow-hidden shadow-2xl flex-shrink-0 ">
+              <img
+                src="/assets/images/silver_support.jpeg"
+                alt="Silver Support Services"
+                className="w-full h-auto object-contain rounded-2xl"
+              />
+            </div>
           </div>
         </section>
       </div>
