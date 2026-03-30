@@ -38,7 +38,7 @@ export default function Footer() {
                         <div className="flex items-center gap-3 sm:gap-4">
                             <div className="bg-black rounded-lg p-2 sm:p-2.5 md:p-3 flex-shrink-0">
                                 <img
-                                    src="/assets/logo/logo.png"
+                                    src="/assets/logo/logo.jpeg"
                                     alt="Starlight Path Logo"
                                     className="h-10 w-10 sm:h-10 sm:w-10 md:h-12 md:w-12 object-contain"
                                 />

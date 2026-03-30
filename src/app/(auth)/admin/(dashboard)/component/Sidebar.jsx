@@ -68,7 +68,7 @@ export default function Sidebar({
             <div className="flex justify-center items-center mt-5 mb-8 px-2 transition-all duration-500">
                 <div className="bg-black rounded-lg p-3 transition-all duration-500">
                     <img
-                        src="/assets/logo/logo.png"
+                        src="/assets/logo/logo.jpeg"
                         alt="Star Light Logo"
                         className={`${isSidebarOpen ? 'h-12 w-12' : 'h-10 w-10'} object-contain transition-all duration-500 ease-in-out`}
                     />
@@ -133,7 +133,7 @@ export default function Sidebar({
                                 <div className="flex justify-center items-center mt-5 mb-8 px-2">
                                     <div className="bg-black rounded-lg p-3">
                                         <img
-                                            src="/assets/logo/logo.png"
+                                            src="/assets/logo/logo.jpeg"
                                             alt="Star Light Logo"
                                             className="h-12 w-12 object-contain"
                                         />

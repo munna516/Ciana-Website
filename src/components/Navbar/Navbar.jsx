@@ -34,7 +34,7 @@ export default function Navbar() {
           <Link href="/" className="flex items-center gap-3 flex-shrink-0">
             <div className="bg-black rounded-lg p-2">
               <img
-                src="/assets/logo/logo.png"
+                src="/assets/logo/logo.jpeg"
                 alt="Star Light Logo"
                 className="h-10 w-14 sm:h-16 sm:w-20 object-contain"
               />
