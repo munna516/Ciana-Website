@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Affordable Shared Housing for You | Ciana",
+  title: "Affordable Shared Housing for You",
   description: "Providing safe, affordable shared housing that supports veterans, the homeless, and individuals in need by offering stability, dignity, and a sense of community."
 };
 
