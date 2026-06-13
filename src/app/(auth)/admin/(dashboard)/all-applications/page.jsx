@@ -26,6 +26,8 @@ export default function AllApplications() {
 
                 const firstResponse = await get('/api/application/list/', { page: 1 });
 
+                console.log(firstResponse)
+
                 // Handle different response formats
                 if (firstResponse.results) {
                     const firstPageResults = Array.isArray(firstResponse.results) ? firstResponse.results : [];
@@ -112,10 +114,13 @@ export default function AllApplications() {
         }
         return phone;
     };
- 
+
 
     const filteredApplications = applications
         .filter(app => {
+            if (activeTab === 'REFERRAL') {
+                return app.application_type === 'REFER' || !!app.referral_email;
+            }
             const status = (app.status || 'unarchive').toString().toLowerCase();
             return activeTab === 'UNARCHIVE' ? status !== 'archive' : status === 'archive';
         })
@@ -193,7 +198,7 @@ export default function AllApplications() {
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex flex-wrap items-center gap-2 mb-4">
                 <Button
                     onClick={() => { setActiveTab('UNARCHIVE'); setCurrentPage(1); }}
                     className={`${activeTab === 'UNARCHIVE' ? 'bg-[#FFA100] text-white' : 'bg-yellow-100 text-gray-700 hover:bg-yellow-200'}`}
@@ -205,6 +210,12 @@ export default function AllApplications() {
                     className={`${activeTab === 'ARCHIVE' ? 'bg-[#FFA100] text-white' : 'bg-yellow-100 text-gray-700 hover:bg-yellow-200'}`}
                 >
                     Archive Applications
+                </Button>
+                <Button
+                    onClick={() => { setActiveTab('REFERRAL'); setCurrentPage(1); }}
+                    className={`${activeTab === 'REFERRAL' ? 'bg-[#FFA100] text-white' : 'bg-yellow-100 text-gray-700 hover:bg-yellow-200'}`}
+                >
+                    Referral
                 </Button>
                 <div className="ml-auto text-sm text-gray-600">
                     Total: {totalCount}
@@ -244,7 +255,7 @@ export default function AllApplications() {
                                     <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">Phone Number</th>
                                     <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">Date of Birth</th>
                                     <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">Action</th>
-                                    {activeTab === 'UNARCHIVE' && (
+                                    {(activeTab === 'UNARCHIVE' || activeTab === 'REFERRAL') && (
                                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">Archive</th>
                                     )}
                                 </tr>
@@ -282,16 +293,18 @@ export default function AllApplications() {
                                                         <Eye className="w-5 h-5 text-gray-600 hover:text-[#FFA100]" />
                                                     </button>
                                                 </td>
-                                                {activeTab === 'UNARCHIVE' && (
+                                                {(activeTab === 'UNARCHIVE' || activeTab === 'REFERRAL') && (
                                                     <td className="py-4 px-4">
-                                                        <button
-                                                            onClick={() => handleArchive(application)}
-                                                            disabled={archivingIds.has(application.id)}
-                                                            className="p-2 hover:bg-gray-100 rounded-md transition-colors cursor-pointer disabled:opacity-50"
-                                                            title="Archive"
-                                                        >
-                                                            <Check className="w-5 h-5 text-gray-600 hover:text-[#16a34a]" />
-                                                        </button>
+                                                        {(application.status || 'unarchive').toString().toLowerCase() !== 'archive' && (
+                                                            <button
+                                                                onClick={() => handleArchive(application)}
+                                                                disabled={archivingIds.has(application.id)}
+                                                                className="p-2 hover:bg-gray-100 rounded-md transition-colors cursor-pointer disabled:opacity-50"
+                                                                title="Archive"
+                                                            >
+                                                                <Check className="w-5 h-5 text-gray-600 hover:text-[#16a34a]" />
+                                                            </button>
+                                                        )}
                                                     </td>
                                                 )}
                                             </tr>
