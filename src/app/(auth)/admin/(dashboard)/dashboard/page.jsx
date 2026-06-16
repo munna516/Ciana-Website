@@ -42,15 +42,15 @@ export default function Dashboard() {
 
     // Map summary data to overview cards
     const overviewData = summaryData ? [
-        {
-            title: 'Total User',
-            value: summaryData.users_count?.toString() || '0',
-            change: 'Total users',
-            icon: Users,
-            bgColor: 'bg-pink-100',
-            iconColor: 'text-pink-600',
-            changeColor: 'text-pink-500',
-        },
+        // {
+        //     title: 'Total User',
+        //     value: summaryData.users_count?.toString() || '0',
+        //     change: 'Total users',
+        //     icon: Users,
+        //     bgColor: 'bg-pink-100',
+        //     iconColor: 'text-pink-600',
+        //     changeColor: 'text-pink-500',
+        // },
         {
             title: 'Total Applications',
             value: summaryData.total_applications_count?.toString() || '0',
@@ -69,15 +69,15 @@ export default function Dashboard() {
             iconColor: 'text-green-600',
             changeColor: 'text-green-500',
         },
-        {
-            title: 'Without Refer',
-            value: summaryData.total_without_refer_count?.toString() || '0',
-            change: 'Total without refer',
-            icon: UsersRound,
-            bgColor: 'bg-purple-100',
-            iconColor: 'text-purple-600',
-            changeColor: 'text-purple-500',
-        },
+        // {
+        //     title: 'Without Refer',
+        //     value: summaryData.total_without_refer_count?.toString() || '0',
+        //     change: 'Total without refer',
+        //     icon: UsersRound,
+        //     bgColor: 'bg-purple-100',
+        //     iconColor: 'text-purple-600',
+        //     changeColor: 'text-purple-500',
+        // },
     ] : [];
 
     // Map monthly data to chart format
@@ -135,26 +135,24 @@ export default function Dashboard() {
 
                 {/* Overview Cards */}
                 {overviewData.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
                         {overviewData.map((item, index) => {
                             const Icon = item.icon;
                             return (
                                 <div
                                     key={index}
-                                    className={`${item.bgColor} rounded-xl p-6 transition-all hover:shadow-md`}
+                                    className={`${item.bgColor} rounded-xl p-6 transition-all hover:shadow-md flex items-center justify-between`}
                                 >
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className={`${item.iconColor} bg-white rounded-full p-3`}>
-                                            <Icon className="w-6 h-6" />
-                                        </div>
+                                    <div className={`${item.iconColor} bg-white rounded-full p-3 flex-shrink-0`}>
+                                        <Icon className="w-6 h-6" />
                                     </div>
-                                    <div className="mb-2">
+                                    <div className="text-right">
                                         <h3 className="text-3xl font-bold text-gray-800">{item.value}</h3>
                                         <p className="text-sm font-medium text-gray-600 mt-1">{item.title}</p>
+                                        <p className={`text-xs font-medium ${item.changeColor} mt-1`}>
+                                            {item.change}
+                                        </p>
                                     </div>
-                                    <p className={`text-xs font-medium ${item.changeColor}`}>
-                                        {item.change}
-                                    </p>
                                 </div>
                             );
                         })}

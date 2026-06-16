@@ -207,13 +207,13 @@ export default function AllApplications() {
                 </Button>
                 <Button
                     onClick={() => { setActiveTab('ARCHIVE'); setCurrentPage(1); }}
-                    className={`${activeTab === 'ARCHIVE' ? 'bg-[#FFA100] text-white' : 'bg-yellow-100 text-gray-700 hover:bg-yellow-200'}`}
+                    className={`${activeTab === 'ARCHIVE' ? 'bg-purple-500 text-white hover:bg-purple-600' : 'bg-purple-100 text-gray-700 hover:bg-purple-200'}`}
                 >
                     Archive Applications
                 </Button>
                 <Button
                     onClick={() => { setActiveTab('REFERRAL'); setCurrentPage(1); }}
-                    className={`${activeTab === 'REFERRAL' ? 'bg-[#FFA100] text-white' : 'bg-yellow-100 text-gray-700 hover:bg-yellow-200'}`}
+                    className={`${activeTab === 'REFERRAL' ? 'bg-green-400 text-white hover:bg-green-500' : 'bg-green-200 text-gray-700 hover:bg-green-200'}`}
                 >
                     Referral
                 </Button>
