@@ -73,7 +73,7 @@ export default function Navbar() {
               asChild
               className="bg-[#FFA100] hover:bg-[#FF8C00] text-white font-medium px-4 py-2 rounded-lg text-sm"
             >
-              <Link href="/contact">Contact</Link>
+              <Link href="/apply">Apply Now</Link>
             </Button>
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>

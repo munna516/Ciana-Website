@@ -81,7 +81,7 @@ export default function Footer() {
                         <ul className="space-y-3 sm:space-y-4">
                             <li className="text-sm sm:text-base md:text-lg text-white/90">
                                 <a
-                                    href="tel:25858-854545"
+                                    href="tel:770-946-6146"
                                     className="hover:text-[#FFA100] transition-colors duration-200"
                                 >
                                     770-946-6146
@@ -89,7 +89,7 @@ export default function Footer() {
                             </li>
                             <li className="text-sm sm:text-base md:text-lg text-white/90">
                                 <a
-                                    href="mailto:info@starlightpath.com"
+                                    href="mailto:info@starlightpath.org"
                                     className="hover:text-[#FFA100] transition-colors duration-200"
                                 >
                                     info@starlightpath.org
